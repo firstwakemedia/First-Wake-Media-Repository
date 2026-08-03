@@ -28,17 +28,33 @@
 .portal-copy { color: var(--text-d-mut); margin-bottom: 30px; }
 
 .portal-form { display: grid; gap: 18px; }
+.portal-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.portal-body textarea,
+.portal-body select {
+  border: 1px solid rgba(191, 210, 231, .34);
+  border-radius: var(--r-sm);
+  background: #f7fafc;
+  color: #071b31;
+  caret-color: #071b31;
+  padding: 12px 14px;
+}
+.portal-body input::placeholder,
+.portal-body textarea::placeholder { color: #60758a; opacity: 1; }
+.portal-body select option { background: #fff; color: #071b31; }
+.portal-body input:focus,
+.portal-body textarea:focus,
+.portal-body select:focus { border-color: var(--accent); outline: 3px solid rgba(141, 196, 201, .2); }
 .portal-field { display: grid; gap: 8px; }
 .portal-field label { font-size: var(--fs-sm); font-weight: 600; color: var(--accent-hi); }
 .portal-field input {
   width: 100%;
   border: 1px solid rgba(191, 210, 231, .28);
   border-radius: var(--r-sm);
-  background: rgba(1, 16, 36, .76);
-  color: #fff;
+  background: #f7fafc;
+  color: #071b31;
   padding: 14px 16px;
 }
-.portal-field input::placeholder { color: #7890a8; }
+.portal-field input::placeholder { color: #60758a; }
 .portal-form .btn { width: 100%; margin-top: 4px; }
 
 .portal-status {

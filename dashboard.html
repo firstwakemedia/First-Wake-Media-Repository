@@ -21,49 +21,79 @@
           <img class="brand__mark" src="/logo-emblem.png" width="160" height="160" alt="">
           <span class="brand__name">First Wake<small>Media</small></span>
         </a>
-        <h1>Your dashboard</h1>
+        <span class="eyebrow">Client portal</span>
+        <h1>Good morning.</h1>
         <p class="dashboard-user" id="dashboard-user"></p>
       </div>
       <button class="btn btn--ghost-light" type="button" id="sign-out">Sign out</button>
     </header>
 
-    <section class="metric-grid" aria-label="Account overview">
+    <section class="dashboard-intro" aria-labelledby="overview-title">
+      <div>
+        <span class="section-kicker">Account overview</span>
+        <h2 id="overview-title">Your website at a glance.</h2>
+      </div>
+      <div class="date-pill" id="reporting-period">Last 30 days</div>
+    </section>
+
+    <section class="metric-grid" aria-label="Website performance">
       <article class="metric-card">
+        <span class="metric-icon metric-icon--online" aria-hidden="true"></span>
         <span class="metric-label">Website status</span>
         <strong class="metric-value metric-value--good">Online</strong>
-        <span class="metric-note">Your website is available.</span>
+        <span class="metric-note">Live and available to customers.</span>
       </article>
       <article class="metric-card">
         <span class="metric-label">Visitors this month</span>
-        <strong class="metric-value">Not connected</strong>
-        <span class="metric-note">Google Analytics will appear here.</span>
+        <strong class="metric-value" id="analytics-users">Collecting</strong>
+        <span class="metric-note">Google Analytics is now connected.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Page views</span>
+        <strong class="metric-value" id="analytics-views">Collecting</strong>
+        <span class="metric-note">Across all website pages.</span>
       </article>
       <article class="metric-card">
         <span class="metric-label">Leads generated</span>
-        <strong class="metric-value">Not connected</strong>
-        <span class="metric-note">Contact-form reporting is coming next.</span>
+        <strong class="metric-value" id="analytics-leads">Collecting</strong>
+        <span class="metric-note">Contact-form submissions.</span>
       </article>
       <article class="metric-card">
-        <span class="metric-label">Website speed</span>
-        <strong class="metric-value">Not measured</strong>
-        <span class="metric-note">A performance report will appear here.</span>
+        <span class="metric-label">Top traffic source</span>
+        <strong class="metric-value metric-value--small" id="analytics-source">Collecting</strong>
+        <span class="metric-note">Where visitors find your website.</span>
       </article>
       <article class="metric-card">
         <span class="metric-label">Outstanding invoice</span>
-        <strong class="metric-value">Not connected</strong>
-        <span class="metric-note">Stripe billing will appear here.</span>
-      </article>
-      <article class="metric-card">
-        <span class="metric-label">Support</span>
-        <strong class="metric-value">We’re here</strong>
-        <span class="metric-note">Send a change request at any time.</span>
+        <strong class="metric-value">$0</strong>
+        <span class="metric-note">Your account is current.</span>
       </article>
     </section>
 
-    <div class="dashboard-actions">
-      <a class="btn btn--primary" href="mailto:firstwakemedia@gmail.com?subject=Website%20change%20request">Request a website change</a>
-      <a class="btn btn--ghost-light" href="mailto:firstwakemedia@gmail.com?subject=Website%20support">Contact support</a>
-    </div>
+    <section class="dashboard-panels">
+      <article class="dashboard-panel analytics-panel">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Analytics</span>
+            <h2>Traffic overview</h2>
+          </div>
+          <span class="connected-badge"><i></i> Google Analytics connected</span>
+        </div>
+        <div class="chart-placeholder" aria-label="Analytics data is being collected">
+          <div class="chart-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <p>Your first traffic report will appear here after Google finishes processing the new tracking data.</p>
+        </div>
+      </article>
+
+      <article class="dashboard-panel support-panel">
+        <span class="section-kicker">Support</span>
+        <h2>Need a change?</h2>
+        <p>Send new photos, request an edit, or tell us about an issue. We’ll follow up personally.</p>
+        <a class="btn btn--primary" href="mailto:firstwakemedia@gmail.com?subject=Website%20change%20request">Request a website change</a>
+      </article>
+    </section>
+
+    <footer class="portal-footer">First Wake Media · Client portal</footer>
   </main>
 
   <script type="module">

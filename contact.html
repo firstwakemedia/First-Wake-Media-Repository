@@ -124,15 +124,15 @@
             No cost, no obligation, no mailing list.
           </p>
 
-          <!-- Netlify Forms. Nothing to configure in this file — submissions appear
-               in your Netlify dashboard under Forms, and get emailed to you once you
-               add a notification. See SETUP.md. -->
+          <!-- Web3Forms delivers submissions to firstwakemedia@gmail.com. -->
           <form class='form' id='lead-form' method='POST' name='contact'>
 
-            <input type="hidden" name="form-name" value="contact">
+            <input type="hidden" name="access_key" value="efc42e12-2365-4775-b9a8-ddf3226fb4e4">
+            <input type="hidden" name="subject" value="New website inquiry from First Wake Media">
+            <input type="hidden" name="from_name" value="First Wake Media website">
             <!-- Honeypot: bots fill this in, humans never see it -->
             <p style="position:absolute;left:-9999px" aria-hidden="true">
-              <label>Don't fill this in: <input name="bot-field" tabindex="-1" autocomplete="off"></label>
+              <label>Don't fill this in: <input type="checkbox" name="botcheck" tabindex="-1" autocomplete="off"></label>
             </p>
 
             <div class="field">
@@ -242,7 +242,7 @@
     });
   }
 
-  /* ---- Netlify Forms submit via fetch, so the visitor stays on the page ---- */
+  /* ---- Web3Forms submit via fetch, so the visitor stays on the page ---- */
   var form = document.getElementById('lead-form');
   var status = document.getElementById('form-status');
   var btn = document.getElementById('submit-btn');
@@ -255,7 +255,7 @@
 
     // Opened straight from the Desktop rather than served over the web.
     if (location.protocol === 'file:') {
-      say('Preview only — the form works once the site is live on Netlify.', '#4C6480');
+      say('Preview only — the form works once the site is live.', '#4C6480');
       return;
     }
 
@@ -264,14 +264,17 @@
     btn.disabled = true;
     say('Sending…', '#4C6480');
 
-    // Netlify expects a URL-encoded POST to any path on the site.
-    fetch('/', {
+    fetch('https://api.web3forms.com/submit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(new FormData(form)).toString()
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(new FormData(form)))
     })
     .then(function (res) {
       if (!res.ok) throw new Error('Bad response');
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data.success) throw new Error(data.message || 'Submission failed');
       form.reset();
       say('Got it — we’ll be in touch soon.', '#2C6B72');
       if (typeof gtag === 'function') {

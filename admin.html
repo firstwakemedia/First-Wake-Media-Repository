@@ -43,8 +43,24 @@
           <span class="section-kicker">Portal access</span>
           <h2 id="clients-title">Manage clients</h2>
         </div>
-        <button class="btn btn--secondary" type="button" id="refresh-clients">Refresh</button>
+        <div class="admin-head-actions">
+          <button class="btn btn--primary" type="button" id="show-add-client">Add client</button>
+          <button class="btn btn--secondary" type="button" id="refresh-clients">Refresh</button>
+        </div>
       </div>
+      <form class="add-client-form client-admin-card" id="add-client-form" hidden>
+        <div class="client-card-head">
+          <div><span class="section-kicker">New portal account</span><h3 class="client-title">Add a client</h3></div>
+          <button class="btn btn--ghost-light" type="button" id="cancel-add-client">Cancel</button>
+        </div>
+        <div class="admin-field-grid add-client-grid">
+          <label>Business name<input name="business_name" autocomplete="organization" required></label>
+          <label>Client email<input name="email" type="email" autocomplete="email" required></label>
+          <label>Temporary password<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        </div>
+        <p class="client-email">The client receives a confirmation email. Give them the temporary password separately.</p>
+        <button class="btn btn--primary save-client" type="submit" id="create-client">Create client account</button>
+      </form>
       <p class="portal-status" id="admin-status" role="status" aria-live="polite"></p>
       <div class="client-list" id="client-list"></div>
     </section>
@@ -76,7 +92,7 @@
   </template>
 
   <script type="module">
-    import { supabase, requireUser } from "/portal.js";
+    import { supabase, requireUser, createAccountClient } from "/portal.js";
 
     const main = document.querySelector("#main");
     const list = document.querySelector("#client-list");
@@ -164,6 +180,43 @@
       await loadClients();
     }
 
+    async function addClient(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = document.querySelector("#create-client");
+      const values = new FormData(form);
+      const businessName = values.get("business_name").trim();
+      const email = values.get("email").trim().toLowerCase();
+      button.disabled = true;
+      button.textContent = "Creating…";
+      setStatus("Creating the client account…");
+      const accountClient = createAccountClient();
+      const { error } = await accountClient.auth.signUp({
+        email,
+        password: values.get("password"),
+        options: { emailRedirectTo: `${window.location.origin}/dashboard`, data: { business_name: businessName } }
+      });
+      button.disabled = false;
+      button.textContent = "Create client account";
+      if (error) { setStatus(error.message || "That client account could not be created.", "error"); return; }
+      form.reset();
+      form.hidden = true;
+      document.querySelector("#show-add-client").textContent = "Add client";
+      setStatus(`${businessName} was added. Ask the client to check ${email} and confirm the account.`, "success");
+      window.setTimeout(loadClients, 800);
+    }
+
+    document.querySelector("#add-client-form").addEventListener("submit", addClient);
+    document.querySelector("#show-add-client").addEventListener("click", () => {
+      const form = document.querySelector("#add-client-form");
+      form.hidden = !form.hidden;
+      document.querySelector("#show-add-client").textContent = form.hidden ? "Add client" : "Close form";
+      if (!form.hidden) form.elements.business_name.focus();
+    });
+    document.querySelector("#cancel-add-client").addEventListener("click", () => {
+      document.querySelector("#add-client-form").hidden = true;
+      document.querySelector("#show-add-client").textContent = "Add client";
+    });
     document.querySelector("#refresh-clients").addEventListener("click", loadClients);
     document.querySelector("#sign-out").addEventListener("click", async () => {
       await supabase.auth.signOut();

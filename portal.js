@@ -5,6 +5,12 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dBzqeMhvpWCWit7PYvS8QA_BacBrM1r
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+export function createAccountClient() {
+  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
+}
+
 export async function currentUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error) return null;

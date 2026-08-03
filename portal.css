@@ -121,6 +121,27 @@
 .admin-summary article { border: 1px solid var(--line-d); border-radius: var(--r); background: rgba(7,27,49,.74); padding: 22px; }
 .admin-summary strong { display: block; color: var(--accent-hi); font-family: var(--f-display); font-size: 2rem; }
 .admin-summary span { color: var(--text-d-mut); font-size: var(--fs-xs); }
+.admin-section-nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 30px; }
+
+.project-progress { margin: 0 0 28px; padding: 26px; border: 1px solid rgba(255,255,255,.12); border-radius: 18px; background: rgba(255,255,255,.055); }
+.progress-steps { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0 22px; padding: 0; counter-reset: progress; }
+.progress-steps li { position: relative; padding: 36px 8px 10px; color: rgba(255,255,255,.55); font-size: .78rem; text-align: center; border-top: 3px solid rgba(255,255,255,.12); }
+.progress-steps li::before { counter-increment: progress; content: counter(progress); position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.12); }
+.progress-steps li.is-complete { color: #fff; border-color: var(--teal, #49c5b6); }
+.progress-steps li.is-complete::before { color: #011024; background: var(--teal, #49c5b6); }
+.compact-request-form { display: grid; gap: 14px; margin-top: 18px; }
+.compact-request-form label { display: grid; gap: 7px; font-size: .86rem; font-weight: 600; }
+.compact-request-form input, .compact-request-form textarea { width: 100%; }
+.compact-request-form textarea { min-height: 110px; }
+.selected-plan { margin: 20px 0 24px; padding: 18px 20px; border-left: 4px solid var(--teal, #49c5b6); border-radius: 12px; background: rgba(255,255,255,.07); }
+.selected-plan strong { display: block; margin-top: 5px; font-family: "Space Grotesk", sans-serif; font-size: 1.25rem; }
+.selected-plan p { margin: 4px 0 0; color: rgba(255,255,255,.72); }
+
+@media (max-width: 680px) {
+  .progress-steps { grid-template-columns: 1fr; }
+  .progress-steps li { padding: 10px 10px 10px 42px; text-align: left; border-top: 0; border-left: 3px solid rgba(255,255,255,.12); }
+  .progress-steps li::before { top: 50%; left: 17px; transform: translate(-50%,-50%); }
+}
 .admin-section { border-top: 1px solid var(--line-d); padding-top: 34px; }
 .client-list { display: grid; gap: 18px; }
 .client-admin-card { border: 1px solid var(--line-d); border-radius: var(--r); background: rgba(7,27,49,.74); padding: 26px; }

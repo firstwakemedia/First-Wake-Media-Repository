@@ -7,6 +7,7 @@
   <meta name="description" content="Tell First Wake Media about your business and the website you need.">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/portal.css">
+  <script src="/analytics.js"></script>
 </head>
 <body class="portal-body">
   <main class="portal-shell" id="main">
@@ -16,8 +17,10 @@
       <span class="eyebrow">Website project questionnaire</span>
       <h1 id="intake-title">Tell us about your business.</h1>
       <p class="portal-copy" id="intake-copy">Share what you already have and how you want your website to look. You can update this later if you become a client.</p>
+      <aside class="selected-plan" id="selected-plan" hidden><span class="section-kicker">Selected plan</span><strong id="selected-plan-name"></strong><p id="selected-plan-price"></p></aside>
       <form class="portal-form" id="intake-form">
         <div class="intake-grid">
+          <div class="intake-field intake-field--wide"><label for="plan-choice">Website plan</label><select id="plan-choice" name="selected_plan" required><option value="">Choose a plan</option><option value="founding">Founding Client — $200 build + $10/month for the first year</option><option value="basic">Basic — $200 build + $49/month</option><option value="multipage">Multi-page — $600 build + $49/month</option><option value="custom">Custom — quoted before work begins</option></select></div>
           <div class="intake-field"><label for="business-name">Business name</label><input id="business-name" name="business_name" autocomplete="organization" required></div>
           <div class="intake-field"><label for="contact-name">Primary contact name</label><input id="contact-name" name="contact_name" autocomplete="name" required></div>
           <div class="intake-field"><label for="contact-email">Email address</label><input id="contact-email" name="contact_email" type="email" autocomplete="email" required></div>
@@ -52,6 +55,19 @@
     const query = new URLSearchParams(location.search);
     const requestedClient = query.get("client");
     const clientMode = query.get("source") === "client";
+    const requestedPlan = query.get("plan");
+    const plans = {
+      founding: { name: "Founding Client", price: "$200 build + $10/month for the first year" },
+      basic: { name: "Basic", price: "$200 build + $49/month" },
+      multipage: { name: "Multi-page", price: "$600 build + $49/month" },
+      custom: { name: "Custom", price: "Quoted before work begins" }
+    };
+    if (requestedPlan && plans[requestedPlan]) {
+      form.elements.selected_plan.value = requestedPlan;
+      document.querySelector("#selected-plan").hidden = false;
+      document.querySelector("#selected-plan-name").textContent = plans[requestedPlan].name;
+      document.querySelector("#selected-plan-price").textContent = plans[requestedPlan].price;
+    }
     let adminView = false;
     let clientId = clientMode && user ? user.id : null;
     if (requestedClient && user) {
@@ -90,7 +106,7 @@
         : await supabase.rpc("submit_project_intake", { business: intake.business_name, email: intake.contact_email, intake });
       button.disabled = false; button.textContent = clientMode && user ? "Save project information" : "Submit project information";
       status.dataset.kind = result.error ? "error" : "success";
-      status.textContent = result.error ? "We could not save your information. Please try again." : "Your project information has been saved. First Wake Media will follow up by email.";
+      status.textContent = result.error ? "We could not save your information. Please try again." : (intake.selected_plan === "custom" ? "Your project information has been saved. First Wake Media will prepare your quote and follow up by email." : "Your project information has been saved. Secure online checkout will be offered as soon as payment activation is complete; First Wake Media will follow up by email.");
       if (!result.error && !(clientMode && user)) form.reset();
     });
   </script>

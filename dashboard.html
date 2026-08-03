@@ -370,7 +370,33 @@
         const name = document.createElement("span"); name.textContent = file.name.replace(/^\d+-/, "");
         const { data: signed } = await supabase.storage.from("client-files").createSignedUrl(`${activeClientId}/${file.name}`, 300);
         const link = document.createElement("a"); link.className = "btn btn--secondary"; link.textContent = "Open"; link.href = signed?.signedUrl || "#"; link.target = "_blank"; link.rel = "noopener";
-        row.append(name, link); container.appendChild(row);
+        const actions = document.createElement("div"); actions.className = "file-row-actions"; actions.appendChild(link);
+        if (adminPreviewMode) {
+          const rename = document.createElement("button"); rename.className = "btn btn--secondary"; rename.type = "button"; rename.textContent = "Rename";
+          rename.addEventListener("click", async () => {
+            const currentName = file.name.replace(/^\d+-/, "");
+            const requestedName = window.prompt("Enter a new file name, including its extension:", currentName)?.trim();
+            if (!requestedName || requestedName === currentName) return;
+            const safeName = requestedName.replace(/[^a-zA-Z0-9._-]+/g, "-");
+            if (!safeName || safeName === ".") return;
+            rename.disabled = true; rename.textContent = "Renaming…";
+            const oldPath = `${activeClientId}/${file.name}`;
+            const newPath = `${activeClientId}/${Date.now()}-${safeName}`;
+            const { error: renameError } = await supabase.storage.from("client-files").move(oldPath, newPath);
+            const fileStatus = document.querySelector("#file-status"); fileStatus.dataset.kind = renameError ? "error" : "success"; fileStatus.textContent = renameError ? "The file could not be renamed." : "File renamed.";
+            if (renameError) { rename.disabled = false; rename.textContent = "Rename"; } else await loadFiles();
+          });
+          const remove = document.createElement("button"); remove.className = "btn btn--danger"; remove.type = "button"; remove.textContent = "Delete";
+          remove.addEventListener("click", async () => {
+            if (!window.confirm(`Permanently delete ${name.textContent}?`)) return;
+            remove.disabled = true; remove.textContent = "Deleting…";
+            const { error: deleteError } = await supabase.storage.from("client-files").remove([`${activeClientId}/${file.name}`]);
+            const fileStatus = document.querySelector("#file-status"); fileStatus.dataset.kind = deleteError ? "error" : "success"; fileStatus.textContent = deleteError ? "The file could not be deleted." : "File deleted.";
+            if (deleteError) { remove.disabled = false; remove.textContent = "Delete"; } else await loadFiles();
+          });
+          actions.append(rename, remove);
+        }
+        row.append(name, actions); container.appendChild(row);
       }
     }
 

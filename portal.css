@@ -168,6 +168,10 @@
 .file-list, .approval-history, .request-history { display: grid; gap: 8px; margin-top: 16px; }
 .file-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); }
 .file-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+.file-row-actions .btn { padding: 8px 11px; font-size: .78rem; }
+.btn--danger { border: 1px solid rgba(255, 134, 134, .58); background: rgba(115, 22, 35, .34); color: #ffd2d2; }
+.btn--danger:hover { background: rgba(150, 31, 47, .58); }
 .request-history-item { margin: 0; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.75); font-size: .84rem; }
 
 @media (max-width: 680px) {

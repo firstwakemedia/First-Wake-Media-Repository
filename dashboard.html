@@ -58,6 +58,34 @@
       </div>
     </section>
 
+    <section class="dashboard-panels project-tools">
+      <article class="dashboard-panel">
+        <span class="section-kicker">Project files</span>
+        <h2>Upload photos and documents</h2>
+        <p>Upload logos, menus, photos, copy, or reference documents. Files remain private to your account and First Wake Media.</p>
+        <form class="portal-form compact-request-form" id="file-form">
+          <label>Choose files<input id="client-files" name="files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv"></label>
+          <button class="btn btn--primary" type="submit">Upload files</button>
+        </form>
+        <p class="portal-status" id="file-status" role="status"></p>
+        <div class="file-list" id="file-list"></div>
+      </article>
+      <article class="dashboard-panel">
+        <span class="section-kicker">Design approval</span>
+        <h2>Approve or request revisions</h2>
+        <p>Use this after reviewing your private website preview. Every response is dated and saved with your project.</p>
+        <form class="portal-form compact-request-form" id="approval-form">
+          <label>Comments<textarea name="comments" placeholder="Optional approval note, or describe the revisions you need."></textarea></label>
+          <div class="client-card-actions">
+            <button class="btn btn--primary" type="submit" data-decision="approved">Approve design</button>
+            <button class="btn btn--secondary" type="submit" data-decision="revision_requested">Request revisions</button>
+          </div>
+        </form>
+        <p class="portal-status" id="approval-status" role="status"></p>
+        <div class="approval-history" id="approval-history"></div>
+      </article>
+    </section>
+
     <section class="order-analytics" aria-labelledby="ordering-title">
       <div class="dashboard-intro">
         <div>
@@ -153,6 +181,8 @@
     import { supabase, requireUser } from "/portal.js";
 
     const user = await requireUser();
+    let activeClientId = user?.id || null;
+    let adminPreviewMode = false;
     if (user) {
       const previewId = new URLSearchParams(window.location.search).get("preview");
       let targetUserId = user.id;
@@ -164,8 +194,13 @@
         } else {
           targetUserId = previewId;
           isAdminPreview = true;
+          activeClientId = previewId;
+          adminPreviewMode = true;
           document.querySelector("#preview-banner").hidden = false;
           document.querySelector("#sign-out").hidden = true;
+          document.querySelector("#file-form").hidden = true;
+          document.querySelector("#approval-form").hidden = true;
+          document.querySelector("#support-form").hidden = true;
         }
       }
       document.querySelector("#dashboard-user").textContent = isAdminPreview ? "Client view" : user.email;
@@ -243,10 +278,38 @@
       if (!error) await loadRequestHistory();
     });
 
+    document.querySelector("#file-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const files = [...document.querySelector("#client-files").files];
+      const fileStatus = document.querySelector("#file-status");
+      if (!files.length) { fileStatus.dataset.kind = "error"; fileStatus.textContent = "Choose at least one file."; return; }
+      const button = event.currentTarget.querySelector("button"); button.disabled = true; button.textContent = "Uploading…";
+      let failure = "";
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) { failure = `${file.name} is larger than 10 MB.`; break; }
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-");
+        const path = `${activeClientId}/${Date.now()}-${safeName}`;
+        const { error } = await supabase.storage.from("client-files").upload(path, file, { upsert: false, contentType: file.type || undefined });
+        if (error) { failure = `${file.name} could not be uploaded.`; break; }
+      }
+      button.disabled = false; button.textContent = "Upload files"; fileStatus.dataset.kind = failure ? "error" : "success"; fileStatus.textContent = failure || "Files uploaded securely.";
+      if (!failure) { event.currentTarget.reset(); await loadFiles(); }
+    });
+
+    document.querySelector("#approval-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const decision = event.submitter?.dataset.decision;
+      const comments = new FormData(event.currentTarget).get("comments").trim();
+      if (decision === "revision_requested" && !comments) { const approvalStatus = document.querySelector("#approval-status"); approvalStatus.dataset.kind = "error"; approvalStatus.textContent = "Describe the revisions you need."; return; }
+      const { error } = await supabase.from("client_approvals").insert({ user_id: activeClientId, decision, comments: comments || null });
+      const approvalStatus = document.querySelector("#approval-status"); approvalStatus.dataset.kind = error ? "error" : "success"; approvalStatus.textContent = error ? "Your response could not be saved." : decision === "approved" ? "Design approved and timestamped." : "Revision request saved and timestamped.";
+      if (!error) { event.currentTarget.reset(); await loadApprovals(); }
+    });
+
     async function loadRequestHistory() {
       if (!user) return;
       const container = document.querySelector("#request-history");
-      const { data } = await supabase.from("support_requests").select("subject, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
+      const { data } = await supabase.from("support_requests").select("subject, status, created_at").eq("user_id", activeClientId).order("created_at", { ascending: false }).limit(5);
       container.replaceChildren();
       for (const request of data || []) {
         const item = document.createElement("p"); item.className = "request-history-item";
@@ -254,6 +317,35 @@
         container.appendChild(item);
       }
     }
+
+    async function loadFiles() {
+      if (!user) return;
+      const container = document.querySelector("#file-list");
+      const { data, error } = await supabase.storage.from("client-files").list(activeClientId, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+      container.replaceChildren();
+      if (error) return;
+      for (const file of data || []) {
+        const row = document.createElement("div"); row.className = "file-row";
+        const name = document.createElement("span"); name.textContent = file.name.replace(/^\d+-/, "");
+        const { data: signed } = await supabase.storage.from("client-files").createSignedUrl(`${activeClientId}/${file.name}`, 300);
+        const link = document.createElement("a"); link.className = "btn btn--secondary"; link.textContent = "Open"; link.href = signed?.signedUrl || "#"; link.target = "_blank"; link.rel = "noopener";
+        row.append(name, link); container.appendChild(row);
+      }
+    }
+
+    async function loadApprovals() {
+      if (!user) return;
+      const container = document.querySelector("#approval-history");
+      const { data } = await supabase.from("client_approvals").select("decision, comments, created_at").eq("user_id", activeClientId).order("created_at", { ascending: false }).limit(5);
+      container.replaceChildren();
+      for (const approval of data || []) {
+        const item = document.createElement("p"); item.className = "request-history-item";
+        item.textContent = `${approval.decision === "approved" ? "Design approved" : "Revisions requested"} · ${new Date(approval.created_at).toLocaleString()}${approval.comments ? ` · ${approval.comments}` : ""}`;
+        container.appendChild(item);
+      }
+    }
+
+    if (user) await Promise.all([loadFiles(), loadApprovals()]);
   </script>
 </body>
 </html>

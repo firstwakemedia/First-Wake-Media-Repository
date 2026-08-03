@@ -136,8 +136,17 @@
 .selected-plan { margin: 20px 0 24px; padding: 18px 20px; border-left: 4px solid var(--teal, #49c5b6); border-radius: 12px; background: rgba(255,255,255,.07); }
 .selected-plan strong { display: block; margin-top: 5px; font-family: "Space Grotesk", sans-serif; font-size: 1.25rem; }
 .selected-plan p { margin: 4px 0 0; color: rgba(255,255,255,.72); }
+.inquiry-toolbar { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(170px, .35fr); gap: 14px; margin: 0 0 20px; }
+.inquiry-toolbar label, .inquiry-workflow label { display: grid; gap: 7px; font-size: .82rem; font-weight: 600; }
+.inquiry-workflow textarea { min-height: 86px; }
+.project-tools { margin-bottom: 28px; }
+.file-list, .approval-history, .request-history { display: grid; gap: 8px; margin-top: 16px; }
+.file-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); }
+.file-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.request-history-item { margin: 0; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.75); font-size: .84rem; }
 
 @media (max-width: 680px) {
+  .inquiry-toolbar { grid-template-columns: 1fr; }
   .progress-steps { grid-template-columns: 1fr; }
   .progress-steps li { padding: 10px 10px 10px 42px; text-align: left; border-top: 0; border-left: 3px solid rgba(255,255,255,.12); }
   .progress-steps li::before { top: 50%; left: 17px; transform: translate(-50%,-50%); }

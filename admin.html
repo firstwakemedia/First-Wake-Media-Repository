@@ -75,6 +75,10 @@
     </section>
     <section class="admin-section" id="public-inquiries" aria-labelledby="inquiries-title">
       <div class="dashboard-intro"><div><span class="section-kicker">Homepage submissions</span><h2 id="inquiries-title">New project inquiries</h2></div></div>
+      <div class="inquiry-toolbar">
+        <label>Search inquiries<input id="inquiry-search" type="search" placeholder="Business, email, or contact"></label>
+        <label>Status<select id="inquiry-filter"><option value="all">All active</option><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="converted">Converted</option><option value="declined">Declined</option></select></label>
+      </div>
       <div class="client-list" id="inquiry-list"><p class="client-email">Loading inquiries…</p></div>
     </section>
     <section class="admin-section" id="support-requests" aria-labelledby="requests-title">
@@ -130,6 +134,7 @@
     const status = document.querySelector("#admin-status");
     const template = document.querySelector("#client-template");
     const user = await requireUser();
+    let allInquiries = [];
 
     function setStatus(message, kind = "") {
       status.textContent = message;
@@ -150,7 +155,7 @@
 
     async function loadInquiries() {
       const container = document.querySelector("#inquiry-list");
-      const { data, error } = await supabase.from("project_intakes").select("id, business_name, contact_email, intake, status, archived, created_at").eq("archived", false).order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("project_intakes").select("id, business_name, contact_email, intake, status, internal_notes, archived, created_at").eq("archived", false).order("created_at", { ascending: false });
       container.replaceChildren();
       if (error || !data?.length) {
         const empty = document.createElement("p");
@@ -159,8 +164,23 @@
         container.appendChild(empty);
         return;
       }
+      allInquiries = data;
       document.querySelector("#inquiry-count").textContent = data.filter(item => (item.status || "new") === "new").length;
-      for (const inquiry of data) {
+      renderInquiries();
+    }
+
+    function renderInquiries() {
+      const container = document.querySelector("#inquiry-list");
+      const search = document.querySelector("#inquiry-search").value.trim().toLowerCase();
+      const statusFilter = document.querySelector("#inquiry-filter").value;
+      const visible = allInquiries.filter(inquiry => {
+        const matchesStatus = statusFilter === "all" || (inquiry.status || "new") === statusFilter;
+        const haystack = [inquiry.business_name, inquiry.contact_email, inquiry.intake?.contact_name].filter(Boolean).join(" ").toLowerCase();
+        return matchesStatus && (!search || haystack.includes(search));
+      });
+      container.replaceChildren();
+      if (!visible.length) { const empty = document.createElement("p"); empty.className = "client-email"; empty.textContent = "No inquiries match those filters."; container.appendChild(empty); return; }
+      for (const inquiry of visible) {
         const card = document.createElement("article");
         card.className = "client-admin-card";
         const heading = document.createElement("h3");
@@ -177,13 +197,23 @@
           const dd = document.createElement("dd"); dd.textContent = inquiry.intake[key];
           details.append(dt, dd);
         }
+        const workflow = document.createElement("div"); workflow.className = "admin-field-grid inquiry-workflow";
+        const statusLabel = document.createElement("label"); statusLabel.textContent = "Status";
+        const statusSelect = document.createElement("select");
+        for (const [value, label] of [["new","New"],["contacted","Contacted"],["qualified","Qualified"],["converted","Converted"],["declined","Declined"]]) { const option = document.createElement("option"); option.value = value; option.textContent = label; option.selected = value === (inquiry.status || "new"); statusSelect.appendChild(option); }
+        statusLabel.appendChild(statusSelect);
+        const notesLabel = document.createElement("label"); notesLabel.textContent = "Internal notes";
+        const notes = document.createElement("textarea"); notes.placeholder = "Private notes, next step, or follow-up date"; notes.value = inquiry.internal_notes || ""; notesLabel.appendChild(notes);
+        workflow.append(statusLabel, notesLabel);
         const actions = document.createElement("div"); actions.className = "client-card-actions";
+        const save = document.createElement("button"); save.className = "btn btn--secondary"; save.type = "button"; save.textContent = "Save inquiry";
+        save.addEventListener("click", async () => { const { error } = await supabase.from("project_intakes").update({ status: statusSelect.value, internal_notes: notes.value.trim() || null }).eq("id", inquiry.id); setStatus(error ? "Inquiry could not be saved." : "Inquiry updated.", error ? "error" : "success"); if (!error) await loadInquiries(); });
         const prepare = document.createElement("button"); prepare.className = "btn btn--primary"; prepare.type = "button"; prepare.textContent = "Prepare client account";
         prepare.addEventListener("click", () => prepareInquiry(inquiry));
         const archive = document.createElement("button"); archive.className = "btn btn--secondary"; archive.type = "button"; archive.textContent = "Archive";
         archive.addEventListener("click", () => archiveInquiry(inquiry.id));
-        actions.append(prepare, archive);
-        card.append(heading, meta, details, actions);
+        actions.append(save, prepare, archive);
+        card.append(heading, meta, details, workflow, actions);
         container.appendChild(card);
       }
     }
@@ -349,6 +379,8 @@
       document.querySelector("#show-add-client").textContent = "Add client";
     });
     document.querySelector("#refresh-clients").addEventListener("click", loadClients);
+    document.querySelector("#inquiry-search").addEventListener("input", renderInquiries);
+    document.querySelector("#inquiry-filter").addEventListener("change", renderInquiries);
     document.querySelector("#sign-out").addEventListener("click", async () => {
       await supabase.auth.signOut();
       window.location.replace("/login");

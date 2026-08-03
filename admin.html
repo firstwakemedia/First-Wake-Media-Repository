@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agency Admin — First Wake Media</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/portal.css">
+</head>
+<body class="portal-body">
+  <a class="skip-link" href="#main">Skip to administration</a>
+  <main class="portal-shell" id="main" hidden>
+    <header class="dashboard-head">
+      <div>
+        <a class="brand" href="/">
+          <img class="brand__mark" src="/logo-emblem.png" width="160" height="160" alt="">
+          <span class="brand__name">First Wake<small>Media</small></span>
+        </a>
+        <span class="eyebrow">Agency administration</span>
+        <h1>Client accounts.</h1>
+        <p class="dashboard-user" id="admin-user"></p>
+      </div>
+      <div class="admin-head-actions">
+        <a class="btn btn--ghost-light" href="/dashboard">My dashboard</a>
+        <button class="btn btn--ghost-light" type="button" id="sign-out">Sign out</button>
+      </div>
+    </header>
+
+    <section class="admin-summary" aria-label="Client summary">
+      <article><strong id="client-count">0</strong><span>Total clients</span></article>
+      <article><strong id="approved-count">0</strong><span>Approved</span></article>
+      <article><strong id="pending-count">0</strong><span>Awaiting approval</span></article>
+    </section>
+
+    <section class="admin-section" aria-labelledby="clients-title">
+      <div class="dashboard-intro">
+        <div>
+          <span class="section-kicker">Portal access</span>
+          <h2 id="clients-title">Manage clients</h2>
+        </div>
+        <button class="btn btn--secondary" type="button" id="refresh-clients">Refresh</button>
+      </div>
+      <p class="portal-status" id="admin-status" role="status" aria-live="polite"></p>
+      <div class="client-list" id="client-list"></div>
+    </section>
+  </main>
+
+  <template id="client-template">
+    <article class="client-admin-card">
+      <form class="client-admin-form">
+        <div class="client-card-head">
+          <div>
+            <span class="client-email"></span>
+            <h3 class="client-title"></h3>
+          </div>
+          <label class="approval-toggle"><input type="checkbox" name="approved"> Approved</label>
+        </div>
+        <div class="admin-field-grid">
+          <label>Business name<input name="business_name" required></label>
+          <label>Website URL<input name="website_url" type="url" placeholder="https://example.com"></label>
+          <label>Website status<select name="website_status"><option value="online">Online</option><option value="maintenance">Maintenance</option><option value="offline">Offline</option></select></label>
+          <label>Outstanding invoice<input name="outstanding_invoice" type="number" min="0" step="0.01"></label>
+          <label>Monthly visitors<input name="monthly_visitors" type="number" min="0"></label>
+          <label>Page views<input name="page_views" type="number" min="0"></label>
+          <label>Leads generated<input name="leads_generated" type="number" min="0"></label>
+          <label>Top traffic source<input name="top_traffic_source" placeholder="Google, Facebook, Direct…"></label>
+        </div>
+        <button class="btn btn--primary save-client" type="submit">Save client</button>
+      </form>
+    </article>
+  </template>
+
+  <script type="module">
+    import { supabase, requireUser } from "/portal.js";
+
+    const main = document.querySelector("#main");
+    const list = document.querySelector("#client-list");
+    const status = document.querySelector("#admin-status");
+    const template = document.querySelector("#client-template");
+    const user = await requireUser();
+
+    function setStatus(message, kind = "") {
+      status.textContent = message;
+      status.dataset.kind = kind;
+    }
+
+    if (user) {
+      const { data: admin } = await supabase.from("agency_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!admin) {
+        window.location.replace("/dashboard");
+      } else {
+        document.querySelector("#admin-user").textContent = user.email;
+        main.hidden = false;
+        await loadClients();
+      }
+    }
+
+    async function loadClients() {
+      setStatus("Loading client accounts…");
+      const { data, error } = await supabase
+        .from("client_portals")
+        .select("user_id, business_name, contact_email, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice")
+        .order("business_name");
+
+      if (error) {
+        setStatus("Client accounts could not be loaded.", "error");
+        return;
+      }
+
+      list.replaceChildren();
+      const approved = data.filter(client => client.approved).length;
+      document.querySelector("#client-count").textContent = data.length;
+      document.querySelector("#approved-count").textContent = approved;
+      document.querySelector("#pending-count").textContent = data.length - approved;
+      setStatus(data.length ? "" : "No client accounts yet.");
+
+      for (const client of data) {
+        const card = template.content.cloneNode(true);
+        const form = card.querySelector("form");
+        card.querySelector(".client-title").textContent = client.business_name;
+        card.querySelector(".client-email").textContent = client.contact_email || "Email unavailable";
+        for (const field of ["business_name", "website_url", "website_status", "outstanding_invoice", "monthly_visitors", "page_views", "leads_generated", "top_traffic_source"]) {
+          form.elements[field].value = client[field] ?? "";
+        }
+        form.elements.approved.checked = client.approved;
+        form.addEventListener("submit", event => saveClient(event, client.user_id));
+        list.appendChild(card);
+      }
+    }
+
+    async function saveClient(event, userId) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector(".save-client");
+      const values = new FormData(form);
+      button.disabled = true;
+      button.textContent = "Saving…";
+      const nullableNumber = name => values.get(name) === "" ? null : Number(values.get(name));
+      const changes = {
+        business_name: values.get("business_name").trim(),
+        website_url: values.get("website_url").trim() || null,
+        website_status: values.get("website_status"),
+        approved: form.elements.approved.checked,
+        outstanding_invoice: Number(values.get("outstanding_invoice") || 0),
+        monthly_visitors: nullableNumber("monthly_visitors"),
+        page_views: nullableNumber("page_views"),
+        leads_generated: nullableNumber("leads_generated"),
+        top_traffic_source: values.get("top_traffic_source").trim() || null,
+        updated_at: new Date().toISOString()
+      };
+      const { error } = await supabase.from("client_portals").update(changes).eq("user_id", userId);
+      button.disabled = false;
+      button.textContent = "Save client";
+      if (error) {
+        setStatus("That client could not be saved.", "error");
+        return;
+      }
+      setStatus(`${changes.business_name} was updated.`, "success");
+      await loadClients();
+    }
+
+    document.querySelector("#refresh-clients").addEventListener("click", loadClients);
+    document.querySelector("#sign-out").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      window.location.replace("/login");
+    });
+  </script>
+</body>
+</html>

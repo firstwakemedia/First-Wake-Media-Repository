@@ -85,6 +85,11 @@
           <label>Page views<input name="page_views" type="number" min="0"></label>
           <label>Leads generated<input name="leads_generated" type="number" min="0"></label>
           <label>Top traffic source<input name="top_traffic_source" placeholder="Google, Facebook, Direct…"></label>
+          <label>DoorDash clicks<input name="clicks_doordash" type="number" min="0"></label>
+          <label>Toast clicks<input name="clicks_toast" type="number" min="0"></label>
+          <label>Uber Eats clicks<input name="clicks_ubereats" type="number" min="0"></label>
+          <label>Grubhub clicks<input name="clicks_grubhub" type="number" min="0"></label>
+          <label>Direct-order clicks<input name="clicks_direct" type="number" min="0"></label>
         </div>
         <button class="btn btn--primary save-client" type="submit">Save client</button>
       </form>
@@ -120,7 +125,7 @@
       setStatus("Loading client accounts…");
       const { data, error } = await supabase
         .from("client_portals")
-        .select("user_id, business_name, contact_email, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice")
+        .select("user_id, business_name, contact_email, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks")
         .order("business_name");
 
       if (error) {
@@ -144,6 +149,9 @@
           form.elements[field].value = client[field] ?? "";
         }
         form.elements.approved.checked = client.approved;
+        for (const provider of ["doordash", "toast", "ubereats", "grubhub", "direct"]) {
+          form.elements[`clicks_${provider}`].value = client.order_clicks?.[provider] ?? 0;
+        }
         form.addEventListener("submit", event => saveClient(event, client.user_id));
         list.appendChild(card);
       }
@@ -167,6 +175,7 @@
         page_views: nullableNumber("page_views"),
         leads_generated: nullableNumber("leads_generated"),
         top_traffic_source: values.get("top_traffic_source").trim() || null,
+        order_clicks: Object.fromEntries(["doordash", "toast", "ubereats", "grubhub", "direct"].map(provider => [provider, Number(values.get(`clicks_${provider}`) || 0)])),
         updated_at: new Date().toISOString()
       };
       const { error } = await supabase.from("client_portals").update(changes).eq("user_id", userId);

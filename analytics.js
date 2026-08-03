@@ -43,4 +43,24 @@ var GA_MEASUREMENT_ID = "G-7TM30MHM45";
   window.gtag("config", GA_MEASUREMENT_ID, {
     anonymize_ip: true          // trims visitor IPs; friendlier for privacy policies
   });
+
+  // Record outbound online-ordering clicks and identify the ordering provider.
+  document.addEventListener("click", function (event) {
+    var link = event.target.closest && event.target.closest("a[href]");
+    if (!link) return;
+    var url;
+    try { url = new URL(link.href, window.location.href); } catch (_) { return; }
+    var host = url.hostname.toLowerCase();
+    var provider = host.indexOf("doordash") !== -1 ? "doordash"
+      : host.indexOf("toasttab") !== -1 || host.indexOf("toast") !== -1 ? "toast"
+      : host.indexOf("ubereats") !== -1 || host.indexOf("uber.com") !== -1 ? "ubereats"
+      : host.indexOf("grubhub") !== -1 ? "grubhub"
+      : link.dataset.orderProvider || "";
+    if (!provider) return;
+    window.gtag("event", "order_link_click", {
+      order_provider: provider,
+      link_url: url.href,
+      link_text: (link.textContent || "").trim()
+    });
+  });
 })();

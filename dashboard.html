@@ -36,6 +36,24 @@
       <div class="date-pill" id="reporting-period">Last 30 days</div>
     </section>
 
+    <section class="order-analytics" aria-labelledby="ordering-title">
+      <div class="dashboard-intro">
+        <div>
+          <span class="section-kicker">Online ordering</span>
+          <h2 id="ordering-title">Ordering link clicks</h2>
+        </div>
+        <div class="date-pill">Last 30 days</div>
+      </div>
+      <div class="order-metric-grid">
+        <article class="metric-card"><span class="metric-label">DoorDash</span><strong class="metric-value" id="clicks-doordash">0</strong><span class="metric-note">Ordering-link clicks</span></article>
+        <article class="metric-card"><span class="metric-label">Toast</span><strong class="metric-value" id="clicks-toast">0</strong><span class="metric-note">Ordering-link clicks</span></article>
+        <article class="metric-card"><span class="metric-label">Uber Eats</span><strong class="metric-value" id="clicks-ubereats">0</strong><span class="metric-note">Ordering-link clicks</span></article>
+        <article class="metric-card"><span class="metric-label">Grubhub</span><strong class="metric-value" id="clicks-grubhub">0</strong><span class="metric-note">Ordering-link clicks</span></article>
+        <article class="metric-card"><span class="metric-label">Direct ordering</span><strong class="metric-value" id="clicks-direct">0</strong><span class="metric-note">Website or phone ordering</span></article>
+        <article class="metric-card metric-card--accent"><span class="metric-label">Total order clicks</span><strong class="metric-value" id="clicks-total">0</strong><span class="metric-note" id="click-rate">0% of visitors clicked to order</span></article>
+      </div>
+    </section>
+
     <section class="metric-grid" aria-label="Website performance">
       <article class="metric-card">
         <span class="metric-icon metric-icon--online" aria-hidden="true"></span>
@@ -107,7 +125,7 @@
 
       const { data: portal, error } = await supabase
         .from("client_portals")
-        .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, updated_at")
+        .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks, updated_at")
         .eq("user_id", user.id)
         .single();
 
@@ -125,6 +143,18 @@
           document.querySelector("#analytics-views").textContent = portal.page_views == null ? "Collecting" : portal.page_views.toLocaleString();
           document.querySelector("#analytics-leads").textContent = portal.leads_generated == null ? "Collecting" : portal.leads_generated.toLocaleString();
           document.querySelector("#analytics-source").textContent = portal.top_traffic_source || "Collecting";
+          const orderClicks = portal.order_clicks || {};
+          const providers = ["doordash", "toast", "ubereats", "grubhub", "direct"];
+          let totalOrderClicks = 0;
+          for (const provider of providers) {
+            const count = Number(orderClicks[provider] || 0);
+            totalOrderClicks += count;
+            document.querySelector(`#clicks-${provider}`).textContent = count.toLocaleString();
+          }
+          document.querySelector("#clicks-total").textContent = totalOrderClicks.toLocaleString();
+          const visitors = Number(portal.monthly_visitors || 0);
+          const rate = visitors ? (totalOrderClicks / visitors) * 100 : 0;
+          document.querySelector("#click-rate").textContent = `${rate.toFixed(1)}% of visitors clicked to order`;
           const invoice = Number(portal.outstanding_invoice || 0);
           document.querySelector("#invoice-total").textContent = invoice.toLocaleString("en-US", { style: "currency", currency: "USD" });
           document.querySelector("#invoice-note").textContent = invoice > 0 ? "Payment is due." : "Your account is current.";

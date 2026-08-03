@@ -133,6 +133,9 @@
 .admin-field-grid label { display: grid; gap: 7px; color: var(--text-d-mut); font-size: var(--fs-xs); }
 .admin-field-grid input, .admin-field-grid select { width: 100%; border: 1px solid rgba(191,210,231,.28); border-radius: var(--r-sm); background: rgba(1,16,36,.76); color: #fff; padding: 11px 12px; }
 .save-client { margin-top: 20px; }
+.order-analytics { margin: 44px 0; }
+.order-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.metric-card--accent { border-color: rgba(88, 205, 255, .62); background: linear-gradient(145deg, rgba(15, 61, 97, .92), rgba(7, 27, 49, .86)); }
 .add-client-form { margin-bottom: 24px; }
 .add-client-grid { grid-template-columns: 2fr 2fr 1.5fr; }
 .add-client-form .client-email { margin: 16px 0 0; }
@@ -148,6 +151,7 @@
 
 @media (max-width: 800px) {
   .metric-grid { grid-template-columns: 1fr; }
+  .order-metric-grid { grid-template-columns: 1fr; }
   .dashboard-panels { grid-template-columns: 1fr; }
   .dashboard-intro, .panel-head { align-items: flex-start; flex-direction: column; }
   .admin-summary { grid-template-columns: 1fr; }

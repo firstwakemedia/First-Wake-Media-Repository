@@ -49,9 +49,11 @@
     const form = document.querySelector("#intake-form");
     const status = document.querySelector("#intake-status");
     const user = await currentUser();
-    const requestedClient = new URLSearchParams(location.search).get("client");
+    const query = new URLSearchParams(location.search);
+    const requestedClient = query.get("client");
+    const clientMode = query.get("source") === "client";
     let adminView = false;
-    let clientId = user?.id || null;
+    let clientId = clientMode && user ? user.id : null;
     if (requestedClient && user) {
       const { data: admin } = await supabase.from("agency_admins").select("user_id").eq("user_id", user.id).maybeSingle();
       if (admin) { adminView = true; clientId = requestedClient; }
@@ -83,13 +85,13 @@
       intake.email_policy_acknowledged = form.elements.email_policy_acknowledged.checked;
       intake.submitted_at = new Date().toISOString();
       button.disabled = true; button.textContent = "Saving…";
-      const result = user
+      const result = clientMode && user
         ? await supabase.rpc("save_client_onboarding", { intake })
         : await supabase.rpc("submit_project_intake", { business: intake.business_name, email: intake.contact_email, intake });
-      button.disabled = false; button.textContent = user ? "Save project information" : "Submit project information";
+      button.disabled = false; button.textContent = clientMode && user ? "Save project information" : "Submit project information";
       status.dataset.kind = result.error ? "error" : "success";
       status.textContent = result.error ? "We could not save your information. Please try again." : "Your project information has been saved. First Wake Media will follow up by email.";
-      if (!result.error && !user) form.reset();
+      if (!result.error && !(clientMode && user)) form.reset();
     });
   </script>
 </body>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Dashboard — First Wake Media</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/portal.css">
+</head>
+<body class="portal-body">
+  <a class="skip-link" href="#main">Skip to dashboard</a>
+  <main class="portal-shell" id="main" hidden>
+    <header class="dashboard-head">
+      <div>
+        <a class="brand" href="/">
+          <img class="brand__mark" src="/logo-emblem.png" width="160" height="160" alt="">
+          <span class="brand__name">First Wake<small>Media</small></span>
+        </a>
+        <h1>Your dashboard</h1>
+        <p class="dashboard-user" id="dashboard-user"></p>
+      </div>
+      <button class="btn btn--ghost-light" type="button" id="sign-out">Sign out</button>
+    </header>
+
+    <section class="metric-grid" aria-label="Account overview">
+      <article class="metric-card">
+        <span class="metric-label">Website status</span>
+        <strong class="metric-value metric-value--good">Online</strong>
+        <span class="metric-note">Your website is available.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Visitors this month</span>
+        <strong class="metric-value">Not connected</strong>
+        <span class="metric-note">Google Analytics will appear here.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Leads generated</span>
+        <strong class="metric-value">Not connected</strong>
+        <span class="metric-note">Contact-form reporting is coming next.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Website speed</span>
+        <strong class="metric-value">Not measured</strong>
+        <span class="metric-note">A performance report will appear here.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Outstanding invoice</span>
+        <strong class="metric-value">Not connected</strong>
+        <span class="metric-note">Stripe billing will appear here.</span>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Support</span>
+        <strong class="metric-value">We’re here</strong>
+        <span class="metric-note">Send a change request at any time.</span>
+      </article>
+    </section>
+
+    <div class="dashboard-actions">
+      <a class="btn btn--primary" href="mailto:firstwakemedia@gmail.com?subject=Website%20change%20request">Request a website change</a>
+      <a class="btn btn--ghost-light" href="mailto:firstwakemedia@gmail.com?subject=Website%20support">Contact support</a>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireUser } from "/portal.js";
+
+    const user = await requireUser();
+    if (user) {
+      document.querySelector("#dashboard-user").textContent = user.email;
+      document.querySelector("#main").hidden = false;
+    }
+
+    document.querySelector("#sign-out").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      window.location.replace("/login");
+    });
+  </script>
+</body>
+</html>

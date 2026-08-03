@@ -15,7 +15,7 @@ export async function requireUser() {
   const user = await currentUser();
   if (!user) {
     const next = encodeURIComponent(window.location.pathname);
-    window.location.replace(`/login/?next=${next}`);
+    window.location.replace(`/login?next=${next}`);
     return null;
   }
   return user;

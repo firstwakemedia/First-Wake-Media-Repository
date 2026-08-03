@@ -56,11 +56,19 @@ var GA_MEASUREMENT_ID = "G-7TM30MHM45";
       : host.indexOf("ubereats") !== -1 || host.indexOf("uber.com") !== -1 ? "ubereats"
       : host.indexOf("grubhub") !== -1 ? "grubhub"
       : link.dataset.orderProvider || "";
-    if (!provider) return;
-    window.gtag("event", "order_link_click", {
-      order_provider: provider,
-      link_url: url.href,
-      link_text: (link.textContent || "").trim()
-    });
+    var linkText = (link.textContent || "").trim();
+    if (provider) {
+      window.gtag("event", "order_link_click", { order_provider: provider, link_url: url.href, link_text: linkText });
+      return;
+    }
+    if (url.protocol === "tel:") window.gtag("event", "phone_click", { link_url: url.href, link_text: linkText });
+    else if (url.protocol === "mailto:") window.gtag("event", "email_click", { link_url: url.href, link_text: linkText });
+    else if (url.pathname === "/start" || url.pathname === "/start.html") window.gtag("event", "select_plan", { plan: url.searchParams.get("plan") || "unspecified", link_text: linkText });
+  });
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!form || !form.id) return;
+    window.gtag("event", "generate_lead", { form_id: form.id, page_path: window.location.pathname });
   });
 })();

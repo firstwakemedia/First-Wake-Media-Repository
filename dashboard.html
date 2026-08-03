@@ -107,20 +107,28 @@
 
       const { data: portal, error } = await supabase
         .from("client_portals")
-        .select("business_name, website_url, website_status, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, updated_at")
+        .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, updated_at")
         .eq("user_id", user.id)
         .single();
 
       if (portal && !error) {
-        document.querySelector("#dashboard-title").textContent = `${greeting}.`;
-        document.querySelector("#business-name").textContent = portal.business_name;
-        document.querySelector("#analytics-users").textContent = portal.monthly_visitors == null ? "Collecting" : portal.monthly_visitors.toLocaleString();
-        document.querySelector("#analytics-views").textContent = portal.page_views == null ? "Collecting" : portal.page_views.toLocaleString();
-        document.querySelector("#analytics-leads").textContent = portal.leads_generated == null ? "Collecting" : portal.leads_generated.toLocaleString();
-        document.querySelector("#analytics-source").textContent = portal.top_traffic_source || "Collecting";
-        const invoice = Number(portal.outstanding_invoice || 0);
-        document.querySelector("#invoice-total").textContent = invoice.toLocaleString("en-US", { style: "currency", currency: "USD" });
-        document.querySelector("#invoice-note").textContent = invoice > 0 ? "Payment is due." : "Your account is current.";
+        if (!portal.approved) {
+          document.querySelector("#dashboard-title").textContent = "Account awaiting approval.";
+          document.querySelector("#business-name").textContent = portal.business_name;
+          document.querySelector("#overview-title").textContent = "We’re preparing your client portal.";
+          document.querySelector(".metric-grid").hidden = true;
+          document.querySelector(".analytics-panel").hidden = true;
+        } else {
+          document.querySelector("#dashboard-title").textContent = `${greeting}.`;
+          document.querySelector("#business-name").textContent = portal.business_name;
+          document.querySelector("#analytics-users").textContent = portal.monthly_visitors == null ? "Collecting" : portal.monthly_visitors.toLocaleString();
+          document.querySelector("#analytics-views").textContent = portal.page_views == null ? "Collecting" : portal.page_views.toLocaleString();
+          document.querySelector("#analytics-leads").textContent = portal.leads_generated == null ? "Collecting" : portal.leads_generated.toLocaleString();
+          document.querySelector("#analytics-source").textContent = portal.top_traffic_source || "Collecting";
+          const invoice = Number(portal.outstanding_invoice || 0);
+          document.querySelector("#invoice-total").textContent = invoice.toLocaleString("en-US", { style: "currency", currency: "USD" });
+          document.querySelector("#invoice-note").textContent = invoice > 0 ? "Payment is due." : "Your account is current.";
+        }
       } else {
         document.querySelector("#dashboard-title").textContent = `${greeting}.`;
         document.querySelector("#business-name").textContent = "Client account";

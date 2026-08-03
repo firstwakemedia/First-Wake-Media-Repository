@@ -15,7 +15,7 @@
    analytics calls before you're set up.
    ========================================================================== */
 
-var GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
+var GA_MEASUREMENT_ID = "G-7TM30MHM45";
 
 
 /* ---------- nothing below this line needs editing ---------- */

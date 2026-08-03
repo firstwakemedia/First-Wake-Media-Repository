@@ -64,7 +64,13 @@
         <h2>Upload photos and documents</h2>
         <p>Upload logos, menus, photos, copy, or reference documents. Files remain private to your account and First Wake Media.</p>
         <form class="portal-form compact-request-form" id="file-form">
-          <label>Choose files<input id="client-files" name="files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv"></label>
+          <div class="file-drop-zone" id="file-drop-zone" role="button" tabindex="0" aria-controls="client-files">
+            <strong>Drag and drop photos here</strong>
+            <span>or click to choose photos and documents</span>
+            <small>JPG, PNG, WEBP, PDF, DOC, TXT or CSV · 10 MB maximum per file</small>
+          </div>
+          <input class="visually-hidden" id="client-files" name="files" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv">
+          <div class="selected-files" id="selected-files" aria-live="polite"></div>
           <button class="btn btn--primary" type="submit">Upload files</button>
         </form>
         <p class="portal-status" id="file-status" role="status"></p>
@@ -278,9 +284,44 @@
       if (!error) await loadRequestHistory();
     });
 
+    const fileInput = document.querySelector("#client-files");
+    const fileDropZone = document.querySelector("#file-drop-zone");
+    const selectedFiles = document.querySelector("#selected-files");
+    let droppedFiles = [];
+
+    function showSelectedFiles(files) {
+      selectedFiles.replaceChildren();
+      if (!files.length) return;
+      const summary = document.createElement("p");
+      summary.textContent = `${files.length} file${files.length === 1 ? "" : "s"} ready to upload`;
+      selectedFiles.appendChild(summary);
+      for (const file of files.slice(0, 8)) {
+        const item = document.createElement("span");
+        item.textContent = file.name;
+        selectedFiles.appendChild(item);
+      }
+    }
+
+    fileDropZone.addEventListener("click", () => fileInput.click());
+    fileDropZone.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); fileInput.click(); }
+    });
+    for (const eventName of ["dragenter", "dragover"]) {
+      fileDropZone.addEventListener(eventName, event => { event.preventDefault(); fileDropZone.classList.add("is-dragging"); });
+    }
+    for (const eventName of ["dragleave", "drop"]) {
+      fileDropZone.addEventListener(eventName, event => { event.preventDefault(); fileDropZone.classList.remove("is-dragging"); });
+    }
+    fileDropZone.addEventListener("drop", event => {
+      droppedFiles = [...event.dataTransfer.files];
+      fileInput.value = "";
+      showSelectedFiles(droppedFiles);
+    });
+    fileInput.addEventListener("change", () => { droppedFiles = []; showSelectedFiles([...fileInput.files]); });
+
     document.querySelector("#file-form").addEventListener("submit", async event => {
       event.preventDefault();
-      const files = [...document.querySelector("#client-files").files];
+      const files = droppedFiles.length ? droppedFiles : [...fileInput.files];
       const fileStatus = document.querySelector("#file-status");
       if (!files.length) { fileStatus.dataset.kind = "error"; fileStatus.textContent = "Choose at least one file."; return; }
       const button = event.currentTarget.querySelector("button"); button.disabled = true; button.textContent = "Uploading…";
@@ -293,7 +334,7 @@
         if (error) { failure = `${file.name} could not be uploaded.`; break; }
       }
       button.disabled = false; button.textContent = "Upload files"; fileStatus.dataset.kind = failure ? "error" : "success"; fileStatus.textContent = failure || "Files uploaded securely.";
-      if (!failure) { event.currentTarget.reset(); await loadFiles(); }
+      if (!failure) { event.currentTarget.reset(); droppedFiles = []; showSelectedFiles([]); await loadFiles(); }
     });
 
     document.querySelector("#approval-form").addEventListener("submit", async event => {

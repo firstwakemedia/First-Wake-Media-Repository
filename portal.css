@@ -140,6 +140,15 @@
 .inquiry-toolbar label, .inquiry-workflow label { display: grid; gap: 7px; font-size: .82rem; font-weight: 600; }
 .inquiry-workflow textarea { min-height: 86px; }
 .project-tools { margin-bottom: 28px; }
+.file-drop-zone { display: grid; gap: 7px; place-items: center; min-height: 175px; padding: 28px 20px; border: 2px dashed rgba(231, 181, 95, .58); border-radius: 18px; background: rgba(231, 181, 95, .07); text-align: center; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.file-drop-zone:hover, .file-drop-zone:focus-visible, .file-drop-zone.is-dragging { border-color: var(--gold); background: rgba(231, 181, 95, .16); outline: none; transform: translateY(-2px); }
+.file-drop-zone strong { color: var(--cream); font-size: 1.05rem; }
+.file-drop-zone span { color: var(--gold); }
+.file-drop-zone small { color: var(--muted); }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.selected-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.selected-files p { flex-basis: 100%; margin: 0; color: var(--cream); }
+.selected-files span { padding: 6px 9px; border: 1px solid rgba(231, 181, 95, .28); border-radius: 999px; color: var(--muted); font-size: .84rem; }
 .file-list, .approval-history, .request-history { display: grid; gap: 8px; margin-top: 16px; }
 .file-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,.1); }
 .file-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

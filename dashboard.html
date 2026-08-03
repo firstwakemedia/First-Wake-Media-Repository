@@ -44,6 +44,20 @@
       <div class="date-pill" id="reporting-period">Last 30 days</div>
     </section>
 
+    <section class="project-progress" aria-labelledby="progress-title">
+      <div class="dashboard-intro">
+        <div><span class="section-kicker">Your project</span><h2 id="progress-title">Website progress</h2></div>
+        <strong class="date-pill" id="project-status">Intake</strong>
+      </div>
+      <ol class="progress-steps" id="progress-steps">
+        <li data-step="intake">Intake</li><li data-step="planning">Planning</li><li data-step="design">Design</li><li data-step="review">Your review</li><li data-step="launch">Launch</li>
+      </ol>
+      <div class="client-card-actions">
+        <a class="btn btn--primary" id="website-preview" href="#" target="_blank" rel="noopener" hidden>View website preview</a>
+        <a class="btn btn--secondary" id="live-website" href="#" target="_blank" rel="noopener" hidden>Open live website</a>
+      </div>
+    </section>
+
     <section class="order-analytics" aria-labelledby="ordering-title">
       <div class="dashboard-intro">
         <div>
@@ -111,11 +125,24 @@
         </div>
       </article>
 
+      <article class="dashboard-panel billing-panel">
+        <span class="section-kicker">Account and billing</span>
+        <h2 id="client-plan">Plan not selected</h2>
+        <p>Payment status: <strong id="payment-status">Not ready</strong></p>
+        <p id="payment-copy">Online checkout is being prepared. No payment is currently required through this portal.</p>
+      </article>
+
       <article class="dashboard-panel support-panel">
         <span class="section-kicker">Support</span>
         <h2>Need a change?</h2>
-        <p>Send new photos, request an edit, or tell us about an issue. We’ll follow up personally.</p>
-        <a class="btn btn--primary" href="mailto:firstwakemedia@gmail.com?subject=Website%20change%20request">Request a website change</a>
+        <p>Submit a request here so it stays connected to your account. Important decisions and approvals will still be confirmed by email.</p>
+        <form class="portal-form compact-request-form" id="support-form">
+          <label>Subject<input name="subject" required placeholder="Example: Update homepage hours"></label>
+          <label>Details<textarea name="message" required placeholder="Describe the change, issue, or new information."></textarea></label>
+          <button class="btn btn--primary" type="submit">Submit request</button>
+        </form>
+        <p class="portal-status" id="support-status" role="status"></p>
+        <div class="request-history" id="request-history"></div>
       </article>
     </section>
 
@@ -147,7 +174,7 @@
 
       const { data: portal, error } = await supabase
         .from("client_portals")
-        .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks, updated_at")
+        .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks, updated_at, project_status, preview_url, selected_plan, payment_status")
         .eq("user_id", targetUserId)
         .single();
 
@@ -180,18 +207,53 @@
           const invoice = Number(portal.outstanding_invoice || 0);
           document.querySelector("#invoice-total").textContent = invoice.toLocaleString("en-US", { style: "currency", currency: "USD" });
           document.querySelector("#invoice-note").textContent = invoice > 0 ? "Payment is due." : "Your account is current.";
+          const planLabels = { founding: "Founding Client", basic: "Basic website", multipage: "Multi-page website", custom: "Custom website" };
+          document.querySelector("#client-plan").textContent = planLabels[portal.selected_plan] || "Plan not selected";
+          document.querySelector("#payment-status").textContent = (portal.payment_status || "not ready").replace("_", " ");
+          document.querySelector("#payment-copy").textContent = portal.payment_status === "paid" ? "Payment received. Thank you." : invoice > 0 ? "A balance is recorded on your account. First Wake Media will provide payment instructions by email." : "Online checkout will appear here after payment activation is complete.";
+          const stages = ["intake", "planning", "design", "review", "launch", "complete"];
+          const currentStage = portal.project_status || "intake";
+          const stageIndex = Math.max(0, stages.indexOf(currentStage));
+          document.querySelector("#project-status").textContent = currentStage === "review" ? "Your review" : currentStage.replace("_", " ");
+          for (const [index, item] of [...document.querySelectorAll("#progress-steps li")].entries()) item.classList.toggle("is-complete", index <= stageIndex);
+          if (portal.preview_url) { const preview = document.querySelector("#website-preview"); preview.href = portal.preview_url; preview.hidden = false; }
+          if (portal.website_url) { const live = document.querySelector("#live-website"); live.href = portal.website_url; live.hidden = false; }
         }
       } else {
         document.querySelector("#dashboard-title").textContent = `${greeting}.`;
         document.querySelector("#business-name").textContent = "Client account";
       }
       document.querySelector("#main").hidden = false;
+      await loadRequestHistory();
     }
 
     document.querySelector("#sign-out").addEventListener("click", async () => {
       await supabase.auth.signOut();
       window.location.replace("/login");
     });
+    document.querySelector("#support-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget; const button = form.querySelector("button"); const values = new FormData(form);
+      button.disabled = true; button.textContent = "Submitting…";
+      const { error } = await supabase.from("support_requests").insert({ user_id: user.id, subject: values.get("subject").trim(), message: values.get("message").trim(), status: "new" });
+      button.disabled = false; button.textContent = "Submit request";
+      const supportStatus = document.querySelector("#support-status"); supportStatus.dataset.kind = error ? "error" : "success";
+      supportStatus.textContent = error ? "Your request could not be submitted. Please email us instead." : "Request submitted. We’ll follow up by email.";
+      if (!error) form.reset();
+      if (!error) await loadRequestHistory();
+    });
+
+    async function loadRequestHistory() {
+      if (!user) return;
+      const container = document.querySelector("#request-history");
+      const { data } = await supabase.from("support_requests").select("subject, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
+      container.replaceChildren();
+      for (const request of data || []) {
+        const item = document.createElement("p"); item.className = "request-history-item";
+        item.textContent = `${request.subject} · ${request.status.replace("_", " ")} · ${new Date(request.created_at).toLocaleDateString()}`;
+        container.appendChild(item);
+      }
+    }
   </script>
 </body>
 </html>

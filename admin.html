@@ -35,9 +35,18 @@
       <article><strong id="client-count">0</strong><span>Total clients</span></article>
       <article><strong id="approved-count">0</strong><span>Approved</span></article>
       <article><strong id="pending-count">0</strong><span>Awaiting approval</span></article>
+      <article><strong id="inquiry-count">0</strong><span>New inquiries</span></article>
+      <article><strong id="open-request-count">0</strong><span>Open requests</span></article>
+      <article><strong id="revenue-total">$0</strong><span>Recorded sales</span></article>
     </section>
 
-    <section class="admin-section" aria-labelledby="clients-title">
+    <nav class="admin-section-nav" aria-label="Administration sections">
+      <a class="btn btn--primary" href="#client-accounts">Client accounts</a>
+      <a class="btn btn--secondary" href="#public-inquiries">Homepage submissions</a>
+      <a class="btn btn--secondary" href="#support-requests">Support requests</a>
+    </nav>
+
+    <section class="admin-section" id="client-accounts" aria-labelledby="clients-title">
       <div class="dashboard-intro">
         <div>
           <span class="section-kicker">Portal access</span>
@@ -64,9 +73,13 @@
       <p class="portal-status" id="admin-status" role="status" aria-live="polite"></p>
       <div class="client-list" id="client-list"></div>
     </section>
-    <section class="admin-section" aria-labelledby="inquiries-title">
+    <section class="admin-section" id="public-inquiries" aria-labelledby="inquiries-title">
       <div class="dashboard-intro"><div><span class="section-kicker">Homepage submissions</span><h2 id="inquiries-title">New project inquiries</h2></div></div>
       <div class="client-list" id="inquiry-list"><p class="client-email">Loading inquiries…</p></div>
+    </section>
+    <section class="admin-section" id="support-requests" aria-labelledby="requests-title">
+      <div class="dashboard-intro"><div><span class="section-kicker">Client support</span><h2 id="requests-title">Change requests</h2></div></div>
+      <div class="client-list" id="request-list"><p class="client-email">Loading requests…</p></div>
     </section>
   </main>
 
@@ -84,6 +97,10 @@
           <label>Business name<input name="business_name" required></label>
           <label>Website URL<input name="website_url" type="url" placeholder="https://example.com"></label>
           <label>Website status<select name="website_status"><option value="online">Online</option><option value="maintenance">Maintenance</option><option value="offline">Offline</option></select></label>
+          <label>Project status<select name="project_status"><option value="intake">Intake</option><option value="planning">Planning</option><option value="design">Design</option><option value="review">Client review</option><option value="launch">Ready to launch</option><option value="complete">Complete</option></select></label>
+          <label>Website preview URL<input name="preview_url" type="url" placeholder="https://preview.example.com"></label>
+          <label>Selected plan<select name="selected_plan"><option value="">Not selected</option><option value="founding">Founding Client</option><option value="basic">Basic</option><option value="multipage">Multi-page</option><option value="custom">Custom</option></select></label>
+          <label>Payment status<select name="payment_status"><option value="not_ready">Not ready</option><option value="pending">Pending</option><option value="paid">Paid</option><option value="past_due">Past due</option></select></label>
           <label>Outstanding invoice<input name="outstanding_invoice" type="number" min="0" step="0.01"></label>
           <label>Monthly visitors<input name="monthly_visitors" type="number" min="0"></label>
           <label>Page views<input name="page_views" type="number" min="0"></label>
@@ -127,13 +144,13 @@
         document.querySelector("#admin-user").textContent = user.email;
         main.hidden = false;
         await loadClients();
-        await loadInquiries();
+        await Promise.all([loadInquiries(), loadRequests()]);
       }
     }
 
     async function loadInquiries() {
       const container = document.querySelector("#inquiry-list");
-      const { data, error } = await supabase.from("project_intakes").select("business_name, contact_email, intake, created_at").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("project_intakes").select("id, business_name, contact_email, intake, status, archived, created_at").eq("archived", false).order("created_at", { ascending: false });
       container.replaceChildren();
       if (error || !data?.length) {
         const empty = document.createElement("p");
@@ -142,6 +159,7 @@
         container.appendChild(empty);
         return;
       }
+      document.querySelector("#inquiry-count").textContent = data.filter(item => (item.status || "new") === "new").length;
       for (const inquiry of data) {
         const card = document.createElement("article");
         card.className = "client-admin-card";
@@ -159,8 +177,57 @@
           const dd = document.createElement("dd"); dd.textContent = inquiry.intake[key];
           details.append(dt, dd);
         }
-        card.append(heading, meta, details);
+        const actions = document.createElement("div"); actions.className = "client-card-actions";
+        const prepare = document.createElement("button"); prepare.className = "btn btn--primary"; prepare.type = "button"; prepare.textContent = "Prepare client account";
+        prepare.addEventListener("click", () => prepareInquiry(inquiry));
+        const archive = document.createElement("button"); archive.className = "btn btn--secondary"; archive.type = "button"; archive.textContent = "Archive";
+        archive.addEventListener("click", () => archiveInquiry(inquiry.id));
+        actions.append(prepare, archive);
+        card.append(heading, meta, details, actions);
         container.appendChild(card);
+      }
+    }
+
+    function prepareInquiry(inquiry) {
+      const addForm = document.querySelector("#add-client-form");
+      addForm.hidden = false;
+      addForm.elements.business_name.value = inquiry.business_name || "";
+      addForm.elements.email.value = inquiry.contact_email || "";
+      addForm.elements.password.value = `Wake-${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}!`;
+      addForm.dataset.inquiryId = inquiry.id || "";
+      document.querySelector("#show-add-client").textContent = "Close form";
+      addForm.scrollIntoView({ behavior: "smooth", block: "center" });
+      setStatus("Review the prepared account, then create it when the customer is ready.", "success");
+    }
+
+    async function archiveInquiry(id) {
+      const { error } = await supabase.from("project_intakes").update({ archived: true, status: "archived" }).eq("id", id);
+      setStatus(error ? "That inquiry could not be archived." : "Inquiry archived.", error ? "error" : "success");
+      if (!error) await loadInquiries();
+    }
+
+    async function loadRequests() {
+      const container = document.querySelector("#request-list");
+      const { data, error } = await supabase.from("support_requests").select("id, user_id, subject, message, status, created_at").order("created_at", { ascending: false });
+      container.replaceChildren();
+      if (error || !data?.length) {
+        const empty = document.createElement("p"); empty.className = "client-email";
+        empty.textContent = error ? "Support requests are not available yet." : "No support requests yet.";
+        container.appendChild(empty); document.querySelector("#open-request-count").textContent = "0"; return;
+      }
+      document.querySelector("#open-request-count").textContent = data.filter(item => item.status !== "complete").length;
+      for (const request of data) {
+        const card = document.createElement("article"); card.className = "client-admin-card";
+        const title = document.createElement("h3"); title.className = "client-title"; title.textContent = request.subject;
+        const meta = document.createElement("p"); meta.className = "client-email"; meta.textContent = `${new Date(request.created_at).toLocaleString()} · Client ${request.user_id.slice(0, 8)}`;
+        const message = document.createElement("p"); message.textContent = request.message;
+        const actions = document.createElement("div"); actions.className = "client-card-actions";
+        for (const [value, label] of [["new","Mark new"],["in_progress","In progress"],["complete","Complete"]]) {
+          const button = document.createElement("button"); button.type = "button"; button.className = value === request.status ? "btn btn--primary" : "btn btn--secondary"; button.textContent = label;
+          button.addEventListener("click", async () => { await supabase.from("support_requests").update({ status: value }).eq("id", request.id); await loadRequests(); });
+          actions.appendChild(button);
+        }
+        card.append(title, meta, message, actions); container.appendChild(card);
       }
     }
 
@@ -168,7 +235,7 @@
       setStatus("Loading client accounts…");
       const { data, error } = await supabase
         .from("client_portals")
-        .select("user_id, business_name, contact_email, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks")
+        .select("user_id, business_name, contact_email, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks, project_status, preview_url, selected_plan, payment_status, amount_paid")
         .order("business_name");
 
       if (error) {
@@ -181,6 +248,7 @@
       document.querySelector("#client-count").textContent = data.length;
       document.querySelector("#approved-count").textContent = approved;
       document.querySelector("#pending-count").textContent = data.length - approved;
+      document.querySelector("#revenue-total").textContent = data.reduce((sum, client) => sum + Number(client.amount_paid || 0), 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
       setStatus(data.length ? "" : "No client accounts yet.");
 
       for (const client of data) {
@@ -188,7 +256,7 @@
         const form = card.querySelector("form");
         card.querySelector(".client-title").textContent = client.business_name;
         card.querySelector(".client-email").textContent = client.contact_email || "Email unavailable";
-        for (const field of ["business_name", "website_url", "website_status", "outstanding_invoice", "monthly_visitors", "page_views", "leads_generated", "top_traffic_source"]) {
+        for (const field of ["business_name", "website_url", "website_status", "project_status", "preview_url", "selected_plan", "payment_status", "outstanding_invoice", "monthly_visitors", "page_views", "leads_generated", "top_traffic_source"]) {
           form.elements[field].value = client[field] ?? "";
         }
         form.elements.approved.checked = client.approved;
@@ -215,6 +283,10 @@
         business_name: values.get("business_name").trim(),
         website_url: values.get("website_url").trim() || null,
         website_status: values.get("website_status"),
+        project_status: values.get("project_status"),
+        preview_url: values.get("preview_url").trim() || null,
+        selected_plan: values.get("selected_plan") || null,
+        payment_status: values.get("payment_status"),
         approved: form.elements.approved.checked,
         outstanding_invoice: Number(values.get("outstanding_invoice") || 0),
         monthly_visitors: nullableNumber("monthly_visitors"),
@@ -254,11 +326,15 @@
       button.disabled = false;
       button.textContent = "Create client account";
       if (error) { setStatus(error.message || "That client account could not be created.", "error"); return; }
+      if (form.dataset.inquiryId) {
+        await supabase.from("project_intakes").update({ status: "converted", archived: true }).eq("id", form.dataset.inquiryId);
+        delete form.dataset.inquiryId;
+      }
       form.reset();
       form.hidden = true;
       document.querySelector("#show-add-client").textContent = "Add client";
       setStatus(`${businessName} was added. Ask the client to check ${email} and confirm the account.`, "success");
-      window.setTimeout(loadClients, 800);
+      window.setTimeout(() => Promise.all([loadClients(), loadInquiries()]), 800);
     }
 
     document.querySelector("#add-client-form").addEventListener("submit", addClient);

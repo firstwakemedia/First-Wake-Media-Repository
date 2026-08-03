@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Start Your Website — First Wake Media</title>
+  <meta name="description" content="Tell First Wake Media about your business and the website you need.">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/portal.css">
+</head>
+<body class="portal-body">
+  <main class="portal-shell" id="main">
+    <div class="report-actions"><a class="btn btn--secondary" id="return-link" href="/">Return home</a></div>
+    <section class="portal-card intake-card">
+      <a class="brand portal-brand" href="/"><img class="brand__mark" src="/logo-emblem.png" width="160" height="160" alt=""><span class="brand__name">First Wake<small>Media</small></span></a>
+      <span class="eyebrow">Website project questionnaire</span>
+      <h1 id="intake-title">Tell us about your business.</h1>
+      <p class="portal-copy" id="intake-copy">Share what you already have and how you want your website to look. You can update this later if you become a client.</p>
+      <form class="portal-form" id="intake-form">
+        <div class="intake-grid">
+          <div class="intake-field"><label for="business-name">Business name</label><input id="business-name" name="business_name" autocomplete="organization" required></div>
+          <div class="intake-field"><label for="contact-name">Primary contact name</label><input id="contact-name" name="contact_name" autocomplete="name" required></div>
+          <div class="intake-field"><label for="contact-email">Email address</label><input id="contact-email" name="contact_email" type="email" autocomplete="email" required></div>
+          <div class="intake-field"><label for="business-phone">Business phone</label><input id="business-phone" name="business_phone" type="tel" autocomplete="tel"></div>
+          <div class="intake-field"><label for="existing-website">Current website, if any</label><input id="existing-website" name="existing_website" type="url" placeholder="https://example.com"></div>
+          <div class="intake-field"><label for="facebook-url">Facebook business page</label><input id="facebook-url" name="facebook_url" type="url" placeholder="https://facebook.com/yourbusiness"></div>
+          <div class="intake-field"><label for="instagram-url">Instagram page</label><input id="instagram-url" name="instagram_url" type="url" placeholder="https://instagram.com/yourbusiness"></div>
+          <div class="intake-field"><label for="google-business-url">Google Business Profile</label><input id="google-business-url" name="google_business_url" type="url" placeholder="https://g.page/..."></div>
+          <div class="intake-field intake-field--wide"><label for="business-description">What does your business do?</label><textarea id="business-description" name="business_description" required placeholder="Describe your services, products, customers, and service area."></textarea></div>
+          <div class="intake-field intake-field--wide"><label for="website-goals">What should the website help you accomplish?</label><textarea id="website-goals" name="website_goals" required placeholder="Examples: get more phone calls, show a menu, book appointments, explain services, or sell products."></textarea></div>
+          <div class="intake-field"><label for="design-style">Preferred look and feel</label><select id="design-style" name="design_style"><option value="">Choose one</option><option>Clean and professional</option><option>Bold and energetic</option><option>Warm and welcoming</option><option>Rustic and local</option><option>Modern and minimal</option><option>Not sure — recommend something</option></select></div>
+          <div class="intake-field"><label for="preferred-colors">Preferred colors</label><input id="preferred-colors" name="preferred_colors" placeholder="Example: dark blue, white, and gold"></div>
+          <div class="intake-field intake-field--wide"><label for="inspiration-sites">Websites you like</label><textarea id="inspiration-sites" name="inspiration_sites" placeholder="Paste links and explain what you like about them."></textarea></div>
+          <div class="intake-field intake-field--wide"><label for="requested-pages">Pages or sections you need</label><textarea id="requested-pages" name="requested_pages" placeholder="Examples: Home, About, Services, Menu, Gallery, Contact, online ordering."></textarea></div>
+          <div class="intake-field intake-field--wide"><label for="project-notes">Anything else we should know?</label><textarea id="project-notes" name="project_notes" placeholder="Deadlines, special requests, competitors, logos, photography, or concerns."></textarea></div>
+        </div>
+        <section class="communication-policy">
+          <h2>Project communication is handled through email</h2>
+          <p>To prevent details from being lost or misunderstood, project decisions, requested changes, approvals, and important information should be sent by email. This gives everyone a written record to review instead of relying on memory or handwritten notes.</p>
+          <label class="communication-check"><input type="checkbox" name="email_policy_acknowledged" required><span>I understand and agree to use email for project communication, changes, and approvals.</span></label>
+        </section>
+        <button class="btn btn--primary btn--lg" type="submit" id="save-intake">Submit project information</button>
+      </form>
+      <p class="portal-status" id="intake-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script type="module">
+    import { supabase, currentUser } from "/portal.js";
+    const form = document.querySelector("#intake-form");
+    const status = document.querySelector("#intake-status");
+    const user = await currentUser();
+    const requestedClient = new URLSearchParams(location.search).get("client");
+    let adminView = false;
+    let clientId = user?.id || null;
+    if (requestedClient && user) {
+      const { data: admin } = await supabase.from("agency_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (admin) { adminView = true; clientId = requestedClient; }
+    }
+    if (clientId) {
+      const { data: client } = await supabase.from("client_portals").select("business_name, contact_email, onboarding").eq("user_id", clientId).maybeSingle();
+      if (client) {
+        form.elements.business_name.value = client.business_name || "";
+        form.elements.contact_email.value = client.contact_email || user?.email || "";
+        for (const [name, value] of Object.entries(client.onboarding || {})) if (form.elements[name]) {
+          if (form.elements[name].type === "checkbox") form.elements[name].checked = Boolean(value);
+          else form.elements[name].value = value ?? "";
+        }
+        document.querySelector("#return-link").href = adminView ? "/admin" : "/dashboard";
+        document.querySelector("#return-link").textContent = adminView ? "Return to admin" : "Return to dashboard";
+        if (adminView) {
+          document.querySelector("#intake-title").textContent = `${client.business_name} project intake`;
+          document.querySelector("#intake-copy").textContent = "Information submitted by this client.";
+          for (const field of form.elements) field.disabled = true;
+          document.querySelector("#save-intake").hidden = true;
+        }
+      }
+    }
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const button = document.querySelector("#save-intake");
+      const values = new FormData(form);
+      const intake = Object.fromEntries(values.entries());
+      intake.email_policy_acknowledged = form.elements.email_policy_acknowledged.checked;
+      intake.submitted_at = new Date().toISOString();
+      button.disabled = true; button.textContent = "Saving…";
+      const result = user
+        ? await supabase.rpc("save_client_onboarding", { intake })
+        : await supabase.rpc("submit_project_intake", { business: intake.business_name, email: intake.contact_email, intake });
+      button.disabled = false; button.textContent = user ? "Save project information" : "Submit project information";
+      status.dataset.kind = result.error ? "error" : "success";
+      status.textContent = result.error ? "We could not save your information. Please try again." : "Your project information has been saved. First Wake Media will follow up by email.";
+      if (!result.error && !user) form.reset();
+    });
+  </script>
+</body>
+</html>

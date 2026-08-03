@@ -151,6 +151,21 @@
 .provider-table th, .provider-table td { padding: 12px; border-bottom: 1px solid #dbe4ec; text-align: left; }
 .provider-table th:last-child, .provider-table td:last-child { text-align: right; }
 .report-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+.intake-card { max-width: 960px; margin: 0 auto; }
+.intake-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.intake-field { display: grid; gap: 8px; }
+.intake-field--wide { grid-column: 1 / -1; }
+.intake-field label { color: var(--text-d-mut); font-size: var(--fs-sm); }
+.intake-field input, .intake-field textarea, .intake-field select { width: 100%; border: 1px solid rgba(191,210,231,.28); border-radius: var(--r-sm); background: rgba(1,16,36,.76); color: #fff; padding: 12px 14px; }
+.intake-field textarea { min-height: 120px; resize: vertical; }
+.communication-policy { margin: 26px 0; padding: 20px; border: 1px solid rgba(88,205,255,.52); border-radius: var(--r); background: rgba(15,61,97,.42); }
+.communication-policy h2 { font-size: 1.25rem; margin-bottom: 8px; }
+.communication-policy p { color: var(--text-d-mut); line-height: 1.65; }
+.communication-check { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; color: #fff; }
+.communication-check input { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--accent); }
+.inquiry-details { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; margin-top: 20px; }
+.inquiry-details dt { color: var(--accent-hi); font-size: var(--fs-xs); font-weight: 700; }
+.inquiry-details dd { color: var(--text-d-mut); white-space: pre-wrap; }
 .order-analytics { margin: 44px 0; }
 .order-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .metric-card--accent { border-color: rgba(88, 205, 255, .62); background: linear-gradient(145deg, rgba(15, 61, 97, .92), rgba(7, 27, 49, .86)); }
@@ -178,6 +193,9 @@
   .admin-preview-banner { align-items: flex-start; flex-direction: column; }
   .admin-preview-banner .btn { margin-left: 0; }
   .report-grid { grid-template-columns: 1fr 1fr; }
+  .intake-grid { grid-template-columns: 1fr; }
+  .intake-field--wide { grid-column: auto; }
+  .inquiry-details { grid-template-columns: 1fr; }
   .dashboard-head { display: block; }
   .dashboard-head .btn { margin-top: 22px; }
 }

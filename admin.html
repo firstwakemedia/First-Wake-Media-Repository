@@ -64,6 +64,10 @@
       <p class="portal-status" id="admin-status" role="status" aria-live="polite"></p>
       <div class="client-list" id="client-list"></div>
     </section>
+    <section class="admin-section" aria-labelledby="inquiries-title">
+      <div class="dashboard-intro"><div><span class="section-kicker">Homepage submissions</span><h2 id="inquiries-title">New project inquiries</h2></div></div>
+      <div class="client-list" id="inquiry-list"><p class="client-email">Loading inquiries…</p></div>
+    </section>
   </main>
 
   <template id="client-template">
@@ -95,6 +99,7 @@
           <button class="btn btn--primary save-client" type="submit">Save client</button>
           <a class="btn btn--secondary preview-client" href="#">View as client</a>
           <a class="btn btn--secondary report-client" href="#">Generate report</a>
+          <a class="btn btn--secondary intake-client" href="#">View client intake</a>
         </div>
       </form>
     </article>
@@ -122,6 +127,40 @@
         document.querySelector("#admin-user").textContent = user.email;
         main.hidden = false;
         await loadClients();
+        await loadInquiries();
+      }
+    }
+
+    async function loadInquiries() {
+      const container = document.querySelector("#inquiry-list");
+      const { data, error } = await supabase.from("project_intakes").select("business_name, contact_email, intake, created_at").order("created_at", { ascending: false });
+      container.replaceChildren();
+      if (error || !data?.length) {
+        const empty = document.createElement("p");
+        empty.className = "client-email";
+        empty.textContent = error ? "Project inquiries could not be loaded." : "No homepage inquiries yet.";
+        container.appendChild(empty);
+        return;
+      }
+      for (const inquiry of data) {
+        const card = document.createElement("article");
+        card.className = "client-admin-card";
+        const heading = document.createElement("h3");
+        heading.className = "client-title";
+        heading.textContent = inquiry.business_name;
+        const meta = document.createElement("p");
+        meta.className = "client-email";
+        meta.textContent = `${inquiry.contact_email} · ${new Date(inquiry.created_at).toLocaleDateString()}`;
+        const details = document.createElement("dl");
+        details.className = "inquiry-details";
+        const fields = [["Contact", "contact_name"], ["Phone", "business_phone"], ["Website", "existing_website"], ["Facebook", "facebook_url"], ["Business", "business_description"], ["Website goals", "website_goals"], ["Preferred style", "design_style"], ["Colors", "preferred_colors"], ["Pages", "requested_pages"], ["Notes", "project_notes"]];
+        for (const [label, key] of fields) if (inquiry.intake?.[key]) {
+          const dt = document.createElement("dt"); dt.textContent = label;
+          const dd = document.createElement("dd"); dd.textContent = inquiry.intake[key];
+          details.append(dt, dd);
+        }
+        card.append(heading, meta, details);
+        container.appendChild(card);
       }
     }
 
@@ -155,6 +194,7 @@
         form.elements.approved.checked = client.approved;
         card.querySelector(".preview-client").href = `/dashboard?preview=${encodeURIComponent(client.user_id)}`;
         card.querySelector(".report-client").href = `/report?client=${encodeURIComponent(client.user_id)}`;
+        card.querySelector(".intake-client").href = `/start?client=${encodeURIComponent(client.user_id)}`;
         for (const provider of ["doordash", "toast", "ubereats", "grubhub", "direct"]) {
           form.elements[`clicks_${provider}`].value = client.order_clicks?.[provider] ?? 0;
         }

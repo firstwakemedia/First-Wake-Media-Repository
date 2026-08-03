@@ -20,7 +20,7 @@
         <img class="brand__mark" src="/logo-emblem.png" width="160" height="160" alt="">
         <span class="brand__name">First Wake<small>Media</small></span>
       </a>
-      <span class="eyebrow">Client portal</span>
+      <span class="eyebrow" id="portal-label">Client portal</span>
       <h1 id="login-title">Welcome back.</h1>
       <p class="portal-copy">Sign in with your password, or request a secure sign-in link by email.</p>
 
@@ -60,7 +60,14 @@
     const status = document.querySelector("#login-status");
     const next = new URLSearchParams(window.location.search).get("next");
     const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    const isAdminLogin = window.location.hostname === "admin.firstwakemedia.com" || safeNext === "/admin";
     let creatingAccount = false;
+
+    if (isAdminLogin) {
+      document.querySelector("#portal-label").textContent = "Admin portal";
+      document.title = "Admin Portal — First Wake Media";
+      accountModeButton.hidden = true;
+    }
 
     if (await currentUser()) window.location.replace(safeNext);
 

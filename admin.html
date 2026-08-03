@@ -91,7 +91,11 @@
           <label>Grubhub clicks<input name="clicks_grubhub" type="number" min="0"></label>
           <label>Direct-order clicks<input name="clicks_direct" type="number" min="0"></label>
         </div>
-        <button class="btn btn--primary save-client" type="submit">Save client</button>
+        <div class="client-card-actions">
+          <button class="btn btn--primary save-client" type="submit">Save client</button>
+          <a class="btn btn--secondary preview-client" href="#">View as client</a>
+          <a class="btn btn--secondary report-client" href="#">Generate report</a>
+        </div>
       </form>
     </article>
   </template>
@@ -149,6 +153,8 @@
           form.elements[field].value = client[field] ?? "";
         }
         form.elements.approved.checked = client.approved;
+        card.querySelector(".preview-client").href = `/dashboard?preview=${encodeURIComponent(client.user_id)}`;
+        card.querySelector(".report-client").href = `/report?client=${encodeURIComponent(client.user_id)}`;
         for (const provider of ["doordash", "toast", "ubereats", "grubhub", "direct"]) {
           form.elements[`clicks_${provider}`].value = client.order_clicks?.[provider] ?? 0;
         }

@@ -15,6 +15,11 @@
 <body class="portal-body">
   <a class="skip-link" href="#main">Skip to dashboard</a>
   <main class="portal-shell" id="main" hidden>
+    <aside class="admin-preview-banner" id="preview-banner" hidden>
+      <strong>Admin preview</strong>
+      <span>You are viewing this dashboard as the client.</span>
+      <a class="btn btn--secondary" href="/admin">Return to admin</a>
+    </aside>
     <header class="dashboard-head">
       <div>
         <a class="brand" href="/">
@@ -119,18 +124,32 @@
 
     const user = await requireUser();
     if (user) {
-      document.querySelector("#dashboard-user").textContent = user.email;
+      const previewId = new URLSearchParams(window.location.search).get("preview");
+      let targetUserId = user.id;
+      let isAdminPreview = false;
+      if (previewId) {
+        const { data: admin } = await supabase.from("agency_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+        if (!admin) {
+          window.location.replace("/dashboard");
+        } else {
+          targetUserId = previewId;
+          isAdminPreview = true;
+          document.querySelector("#preview-banner").hidden = false;
+          document.querySelector("#sign-out").hidden = true;
+        }
+      }
+      document.querySelector("#dashboard-user").textContent = isAdminPreview ? "Client view" : user.email;
       const hour = new Date().getHours();
       const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
       const { data: portal, error } = await supabase
         .from("client_portals")
         .select("business_name, website_url, website_status, approved, monthly_visitors, page_views, leads_generated, top_traffic_source, outstanding_invoice, order_clicks, updated_at")
-        .eq("user_id", user.id)
+        .eq("user_id", targetUserId)
         .single();
 
       if (portal && !error) {
-        if (!portal.approved) {
+        if (!portal.approved && !isAdminPreview) {
           document.querySelector("#dashboard-title").textContent = "Account awaiting approval.";
           document.querySelector("#business-name").textContent = portal.business_name;
           document.querySelector("#overview-title").textContent = "We’re preparing your client portal.";

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Performance Report — First Wake Media</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/portal.css">
+</head>
+<body class="portal-body">
+  <main class="portal-shell report-page" id="main" hidden>
+    <div class="report-actions">
+      <a class="btn btn--secondary" href="/admin">Return to admin</a>
+      <button class="btn btn--primary" type="button" id="print-report">Print or save PDF</button>
+    </div>
+    <article class="report-sheet">
+      <span class="section-kicker">First Wake Media</span>
+      <h1 id="report-title">Client performance report</h1>
+      <p class="report-meta" id="report-meta">Last 30 days</p>
+      <div class="report-summary" id="plain-summary"></div>
+      <section class="report-grid" aria-label="Performance totals">
+        <article class="report-stat"><span>Website visitors</span><strong id="report-visitors">0</strong></article>
+        <article class="report-stat"><span>Page views</span><strong id="report-views">0</strong></article>
+        <article class="report-stat"><span>Leads</span><strong id="report-leads">0</strong></article>
+        <article class="report-stat"><span>Order-link clicks</span><strong id="report-order-clicks">0</strong></article>
+      </section>
+      <h2>Online ordering performance</h2>
+      <table class="provider-table">
+        <thead><tr><th>Ordering provider</th><th>Clicks</th></tr></thead>
+        <tbody id="provider-results"></tbody>
+      </table>
+      <h2>What the numbers mean</h2>
+      <p id="report-insight"></p>
+      <h2>Recommended next steps</h2>
+      <ul id="report-recommendations"></ul>
+      <p class="report-meta">Ordering activity represents link clicks, not confirmed completed purchases.</p>
+    </article>
+  </main>
+  <script type="module">
+    import { supabase, requireUser } from "/portal.js";
+    const user = await requireUser();
+    const clientId = new URLSearchParams(window.location.search).get("client");
+    if (user && clientId) {
+      const { data: admin } = await supabase.from("agency_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!admin) window.location.replace("/dashboard");
+      const { data: client, error } = await supabase.from("client_portals")
+        .select("business_name, website_url, monthly_visitors, page_views, leads_generated, top_traffic_source, order_clicks, updated_at")
+        .eq("user_id", clientId).single();
+      if (client && !error) buildReport(client);
+    }
+
+    function buildReport(client) {
+      const labels = { doordash: "DoorDash", toast: "Toast", ubereats: "Uber Eats", grubhub: "Grubhub", direct: "Direct ordering" };
+      const visitors = Number(client.monthly_visitors || 0);
+      const views = Number(client.page_views || 0);
+      const leads = Number(client.leads_generated || 0);
+      const providers = Object.entries(labels).map(([key, label]) => ({ label, clicks: Number(client.order_clicks?.[key] || 0) }));
+      const totalClicks = providers.reduce((sum, provider) => sum + provider.clicks, 0);
+      const best = [...providers].sort((a, b) => b.clicks - a.clicks)[0];
+      const rate = visitors ? (totalClicks / visitors) * 100 : 0;
+      document.querySelector("#report-title").textContent = `${client.business_name} performance report`;
+      document.querySelector("#report-meta").textContent = `Last 30 days · Generated ${new Date().toLocaleDateString()}`;
+      document.querySelector("#report-visitors").textContent = visitors.toLocaleString();
+      document.querySelector("#report-views").textContent = views.toLocaleString();
+      document.querySelector("#report-leads").textContent = leads.toLocaleString();
+      document.querySelector("#report-order-clicks").textContent = totalClicks.toLocaleString();
+      const bestText = best.clicks ? `${best.label} received the most ordering activity with ${best.clicks.toLocaleString()} clicks.` : "Ordering-link activity is still being collected.";
+      document.querySelector("#plain-summary").textContent = `${client.business_name} received ${visitors.toLocaleString()} website visitors and ${views.toLocaleString()} page views during this reporting period. ${totalClicks.toLocaleString()} people clicked an online-ordering link, producing a ${rate.toFixed(1)}% visitor-to-order-click rate. ${bestText}`;
+      document.querySelector("#provider-results").innerHTML = providers.map(provider => `<tr><td>${provider.label}</td><td>${provider.clicks.toLocaleString()}</td></tr>`).join("");
+      document.querySelector("#report-insight").textContent = best.clicks ? `${best.label} is currently the strongest ordering channel. ${client.top_traffic_source ? `${client.top_traffic_source} is the leading website traffic source.` : "Traffic-source data is still being collected."}` : "More visitor activity is needed before a strongest ordering channel can be identified.";
+      const recommendations = [];
+      recommendations.push(best.clicks ? `Keep ${best.label} prominent on the homepage and menu pages.` : "Keep ordering buttons clearly visible while data is collected.");
+      if (rate > 0 && rate < 5) recommendations.push("Test stronger ordering-button wording or placement to improve the click rate.");
+      if (!leads) recommendations.push("Confirm that contact forms and phone links are easy to find on mobile devices.");
+      recommendations.push("Review these results again next month to identify meaningful trends.");
+      document.querySelector("#report-recommendations").innerHTML = recommendations.map(item => `<li>${item}</li>`).join("");
+      document.querySelector("#main").hidden = false;
+    }
+    document.querySelector("#print-report").addEventListener("click", () => window.print());
+  </script>
+</body>
+</html>

@@ -25,6 +25,10 @@
       <p class="portal-copy">Sign in with your password, or request a secure sign-in link by email.</p>
 
       <form class="portal-form" id="login-form">
+        <div class="portal-field" id="business-field" hidden>
+          <label for="business-name">Business name</label>
+          <input id="business-name" name="business_name" type="text" autocomplete="organization" placeholder="Your business" disabled>
+        </div>
         <div class="portal-field">
           <label for="email">Email address</label>
           <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@yourbusiness.com">
@@ -49,6 +53,8 @@
     const button = document.querySelector("#login-button");
     const magicLinkButton = document.querySelector("#magic-link-button");
     const accountModeButton = document.querySelector("#account-mode-button");
+    const businessField = document.querySelector("#business-field");
+    const businessInput = document.querySelector("#business-name");
     const title = document.querySelector("#login-title");
     const copy = document.querySelector(".portal-copy");
     const status = document.querySelector("#login-status");
@@ -67,11 +73,15 @@
       const values = new FormData(form);
       const email = values.get("email");
       const password = values.get("password");
+      const businessName = values.get("business_name");
       const { data, error } = creatingAccount
         ? await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: `${window.location.origin}/dashboard` }
+            options: {
+              emailRedirectTo: `${window.location.origin}/dashboard`,
+              data: { business_name: businessName }
+            }
           })
         : await supabase.auth.signInWithPassword({ email, password });
 
@@ -103,6 +113,9 @@
       button.textContent = creatingAccount ? "Create account" : "Sign in";
       accountModeButton.textContent = creatingAccount ? "Back to sign in" : "Create account";
       magicLinkButton.hidden = creatingAccount;
+      businessField.hidden = !creatingAccount;
+      businessInput.disabled = !creatingAccount;
+      businessInput.required = creatingAccount;
       status.textContent = "";
       status.dataset.kind = "";
     });
